@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员-批量导入图书</title>
+    <link href="/layui/css/layui.css" rel="stylesheet" media="all"/>
+</head>
+<div class="layui-layout layui-layout-admin">
+
+    <div th:insert="~{common/admin_header :: header}"></div>
+
+    <div class="layui-side layui-bg-black">
+        <div class="layui-side-scroll">
+            <ul class="layui-nav layui-nav-tree">
+                <li class="layui-nav-item layui-nav-itemed">
+                    <a class="" href="javascript:;">书籍管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/addBookPage">&emsp;&emsp;录入新书</a></dd>
+                        <dd><a href="/addCategoryPage?pageNum=1">&emsp;&emsp;新建类别</a></dd>
+                        <dd><a href="/showBooksPage">&emsp;&emsp;查询书籍</a></dd>
+                        <dd class="layui-this"><a href="/importBooksPage">&emsp;&emsp;批量导入</a></dd>
+                    </dl>
+                </li>
+                <li class="layui-nav-item">
+                    <a class="" href="javascript:;">用户管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/showUsersPage?pageNum=1">&emsp;&emsp;查询用户</a></dd>
+                        <dd><a href="/addUserPage">&emsp;&emsp;新增用户</a></dd>
+                        <dd><a href="/importUsersPage">&emsp;&emsp;批量导入</a></dd>
+                    </dl>
+                </li>
+                <li class="layui-nav-item">
+                    <a class="" href="javascript:;">借阅信息</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/allBorrowBooksRecordPage?pageNum=1">&emsp;&emsp;所有记录</a></dd>
+                    </dl>
+                </li>
+                <li class="layui-nav-item"><a href="/adminInfoPage">个人信息</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="layui-body layui-container" style="margin:10px auto; padding:10px 16px; width:90%;">
+
+        <hr class="layui-bg-blue">
+        <h2 style="text-align:center">Excel 批量导入图书</h2>
+        <hr class="layui-bg-blue">
+
+        <!-- 表格格式说明 -->
+        <div style="margin:20px 0; padding:15px; background:#f0f8ff; border:1px solid #b3d8ff; border-radius:5px;">
+            <h4 style="margin:0 0 10px 0; color:#1e9fff;">📋 Excel 表格格式要求</h4>
+            <p style="margin:5px 0; color:#666;">请按以下表头格式准备 Excel 文件（第一行为表头，数据从第二行开始）：</p>
+            <table class="layui-table" lay-size="sm">
+                <thead>
+                    <tr>
+                        <th>书名</th>
+                        <th>作者</th>
+                        <th>出版社</th>
+                        <th>类别ID</th>
+                        <th>价格</th>
+                        <th>简介</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>示例：Java编程思想</td>
+                        <td>示例：Bruce Eckel</td>
+                        <td>示例：机械工业出版社</td>
+                        <td>示例：1</td>
+                        <td>示例：79.00</td>
+                        <td>示例：Java经典入门书籍</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin:5px 0; color:#ff5722; font-size:12px;">
+                ⚠️ 注意：类别ID为图书分类表中对应的ID（可在"新建类别"页面查看），必须填写数字。书名不能为空。
+            </p>
+        </div>
+
+        <!-- 上传区域 -->
+        <div style="width:600px; padding:20px; margin:20px auto; background-color:#f2f2f2; border-radius:5px;">
+            <div class="layui-upload-drag" id="uploadBookExcel" style="text-align:center; padding:40px;">
+                <i class="layui-icon layui-icon-upload-drag" style="font-size:50px; color:#1e9fff;"></i>
+                <p style="margin:10px 0;">点击选择文件或将Excel文件拖拽到此区域</p>
+                <p style="color:#999; font-size:12px;">支持 .xlsx 和 .xls 格式，单次最多导入10MB</p>
+            </div>
+            <div id="fileNameDisplay" style="display:none; text-align:center; margin:10px 0; color:#1e9fff;"></div>
+            <button class="layui-btn layui-btn-normal" id="btn_import" style="display:none; width:100%; margin-top:10px;">
+                <i class="layui-icon layui-icon-upload-circle"></i> 开始导入
+            </button>
+            <div style="text-align:center; margin-top:10px;">
+                <a href="javascript:;" id="downloadTemplate" style="color:#1e9fff;">
+                    📥 点击下载图书导入模板
+                </a>
+            </div>
+        </div>
+
+        <!-- 导入结果显示 -->
+        <div id="importResult" style="display:none; margin:20px auto; width:600px;"></div>
+
+    </div>
+
+    <div th:insert="~{common/footer :: footer}"></div>
+
+</div>
+
+<script src="/scripts/jquery.min.js"></script>
+<script src="/layui/layui.js"></script>
+<script src="/scripts/admin/importBooks.js"></script>
+
+</body>
+</html>

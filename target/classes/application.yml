@@ -1,0 +1,44 @@
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.zbw.domain
+  configuration:
+    map-underscore-to-camel-case: true  # 自动下划线转驼峰（必须加）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开启SQL日志，方便调试
+  global-config:
+    db-config:
+      id-type: auto
+
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+    # ✅ 修复MySQL连接错误：添加allowPublicKeyRetrieval=true，时区改为Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/library-manager-system?useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  mvc:
+    view:
+      prefix: classpath:/templates/
+      suffix: .html
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # ✅ 修复弃用警告：Spring Boot 3.2+新的静态资源缓存配置
+  web:
+    resources:
+      chain:
+        cache: true
