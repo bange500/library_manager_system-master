@@ -13,7 +13,6 @@
 
     <div class="layui-side layui-bg-black">
         <div class="layui-side-scroll">
-            <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
             <ul class="layui-nav layui-nav-tree">
 
                 <li class="layui-nav-item ">
@@ -39,34 +38,57 @@
     <div class="layui-body layui-container">
 
         <div class="layui-row">
-            <div class="layui-col-md4"><!--左半部分-->
+
+            <div class="layui-col-md3"><!--左半部分-->
 
                 <hr class="layui-bg-blue">
-                <h1 style="text-align:left">查询书籍</h1>
+                <h2 style="text-align:center">查询书籍</h2>
                 <hr class="layui-bg-blue">
 
-                <form class="layui-form" action="/findBookByBookPartInfo" id="findBookByNameForm">
-
+                <!-- 按类别查找 -->
+                <form class="layui-form" action="/userShowBooksByCategory" id="bookCategoryForm">
                     <div class="layui-form-item">
-                        <input placeholder="请输入书名信息" class="layui-input" autofocus autocomplete="off" type="text"
-                               name="bookPartInfo" lay-verify="required">
+                        <div style="margin: 10px 0;">
+                            <label><b>按类别查找</b></label>
+                        </div>
+                        <div>
+                            <select lay-verify="required" class="layui-select" id="bookCategory" name="bookCategory">
+                            </select>
+                        </div>
                     </div>
+                    <input type="text" name="pageNum" value="1" style="display: none">
+                    <input class="layui-btn layui-btn-sm" type="submit" lay-submit="" value="按类别查找">
+                </form>
 
-                    <input class="layui-btn" type="submit" lay-submit="" value="查询">
+                <hr style="margin:20px 0;">
+
+                <!-- 按书名查找 -->
+                <form class="layui-form" action="/userFindBooksByKeyword" id="keywordForm">
+                    <div class="layui-form-item">
+                        <div style="margin: 10px 0;">
+                            <label><b>按书名查找</b></label>
+                        </div>
+                        <div>
+                            <input class="layui-input" type="text" name="bookPartInfo"
+                                   placeholder="输入书名关键字" autocomplete="off" lay-verify="required">
+                        </div>
+                    </div>
+                    <input type="text" name="pageNum" value="1" style="display: none">
+                    <input type="hidden" name="bookCategory" id="keywordBookCategory" value="0">
+                    <input class="layui-btn layui-btn-sm layui-btn-normal" type="submit" lay-submit="" value="按书名查找">
                 </form>
             </div>
 
-
-            <div class="layui-col-md7 layui-col-lg-offset1"><!--右半部分-->
+            <div class="layui-col-md7 layui-col-md-offset2"><!--右半部分-->
 
                 <hr class="layui-bg-blue">
-                <h1 style="text-align: left">查询结果</h1>
+                <h2 style="text-align:center">查询结果</h2>
                 <hr class="layui-bg-blue">
 
-                <table class="layui-table ">
+                <table class="layui-table" lay-size="sm">
                     <thead>
                     <tr>
-                        <th>书籍编号</th>
+                        <th>编号</th>
                         <th>书名</th>
                         <th>作者</th>
                         <th>出版社</th>
@@ -74,6 +96,16 @@
                     </tr>
                     </thead>
 
+                    <!-- 分页结果（类别搜索 / 关键字搜索） -->
+                    <tr th:each="book:${page != null ? page.getList() : null}">
+                        <td><label th:text="${book.getBookId()}"></label></td>
+                        <td><label th:text="${book.getBookName()}"></label></td>
+                        <td><label th:text="${book.getBookAuthor()}"></label></td>
+                        <td><label th:text="${book.getBookPublish()}"></label></td>
+                        <td><label th:text="${book.getIsExist()}"></label></td>
+                    </tr>
+
+                    <!-- 非分页结果（旧版关键字搜索兼容） -->
                     <tr th:each="book:${bookList}">
                         <td><label th:text="${book.getBookId()}"></label></td>
                         <td><label th:text="${book.getBookName()}"></label></td>
@@ -81,10 +113,51 @@
                         <td><label th:text="${book.getBookPublish()}"></label></td>
                         <td><label th:text="${book.getIsExist()}"></label></td>
                     </tr>
+
+                    <!-- 空结果提示 -->
+                    <tr th:if="${(page == null || page.getList() == null || page.getList().isEmpty()) && (bookList == null || bookList.isEmpty())}">
+                        <td colspan="5" style="text-align:center;color:#999;">请选择查询方式并输入条件</td>
+                    </tr>
+
+                    <!-- 分页导航 -->
+                    <tr th:if="${page != null && page.getList() != null && !page.getList().isEmpty()}">
+                        <td colspan="5">
+                            <div style="margin: auto; width: 200px;">
+
+                                <th:block th:if="${searchType == 'keyword'}">
+                                    <a id="prePage"
+                                       th:href="@{/userFindBooksByKeyword(pageNum=${page.getPageNum()-1},bookPartInfo=${keyword},bookCategory=${bookCategory})}">
+                                        <button class="layui-btn layui-btn-sm">上一页</button>
+                                    </a>
+                                    <label id="lab1" th:text="${page.getPageNum()}"></label>
+                                    <span>/</span>
+                                    <label id="lab2" th:text="${page.getPageCount()}"></label>
+                                    <a id="nextPage"
+                                       th:href="@{/userFindBooksByKeyword(pageNum=${page.getPageNum()+1},bookPartInfo=${keyword},bookCategory=${bookCategory})}">
+                                        <button class="layui-btn layui-btn-sm">下一页</button>
+                                    </a>
+                                </th:block>
+
+                                <th:block th:unless="${searchType == 'keyword'}">
+                                    <a id="prePage"
+                                       th:href="@{/userShowBooksByCategory(pageNum=${page.getPageNum()-1},bookCategory=${bookCategory})}">
+                                        <button class="layui-btn layui-btn-sm">上一页</button>
+                                    </a>
+                                    <label id="lab1" th:text="${page.getPageNum()}"></label>
+                                    <span>/</span>
+                                    <label id="lab2" th:text="${page.getPageCount()}"></label>
+                                    <a id="nextPage"
+                                       th:href="@{/userShowBooksByCategory(pageNum=${page.getPageNum()+1},bookCategory=${bookCategory})}">
+                                        <button class="layui-btn layui-btn-sm">下一页</button>
+                                    </a>
+                                </th:block>
+
+                            </div>
+                        </td>
+                    </tr>
                 </table>
             </div>
         </div>
-
 
     </div>
 
@@ -93,15 +166,13 @@
 </div>
 
 
+<script th:inline="javascript">
+    // 保存当前选中的类别ID，避免页面刷新后重置
+    var selectedCategory = [[${bookCategory != null ? bookCategory : 0}]];
+</script>
 <script src="/scripts/jquery.min.js"></script>
 <script src="/layui/layui.js"></script>
-
-<script>
-    layui.use(['form', 'element'], function () {
-        let form = layui.form;
-        let element = layui.element;
-    });
-</script>
+<script src="/scripts/user/findBook.js"></script>
 
 </body>
 </html>

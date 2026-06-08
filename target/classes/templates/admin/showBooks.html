@@ -139,6 +139,10 @@
 
 </div>
 
+<script th:inline="javascript">
+    // 保存当前选中的类别ID，避免页面刷新后重置
+    var selectedCategory = [[${bookCategory != null ? bookCategory : 0}]];
+</script>
 <script src="/scripts/jquery.min.js"></script>
 <script src="/layui/layui.js"></script>
 <script src="/scripts/admin/showBooks.js"></script>

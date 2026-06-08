@@ -17,6 +17,15 @@ public interface IBookService {
     List<BookVo> selectBooksByBookPartInfo(String partInfo);
 
     /**
+     * 根据书籍名称关键字分页查找
+     *
+     * @param keyword
+     * @param pageNum
+     * @return
+     */
+    Page<BookVo> findBooksByKeyword(String keyword, int pageNum);
+
+    /**
      * 根据书籍种类id查找书籍,分页查找
      *
      * @param categoryId

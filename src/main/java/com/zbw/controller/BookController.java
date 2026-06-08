@@ -61,14 +61,44 @@ public class BookController {
     }
 
     /**
-     * 返回用户&emsp;&emsp;查询书籍结果页
+     * 返回用户&emsp;&emsp;按类别分页查询书籍结果页
+     *
+     * @param pageNum
+     * @param bookCategory
+     * @param model
+     * @return
+     */
+    @RequestMapping("/userShowBooksByCategory")
+    public String userShowBooksByCategory(@RequestParam("pageNum") int pageNum,
+                                          @RequestParam("bookCategory") int bookCategory, Model model) {
+        Page<BookVo> page = bookService.findBooksByCategoryId(bookCategory, pageNum);
+        model.addAttribute("page", page);
+        model.addAttribute("bookCategory", bookCategory);
+        return "user/findBook";
+    }
+
+    /**
+     * 返回用户&emsp;&emsp;查询书籍结果页（按书名关键字）
      *
      * @param bookPartInfo
      * @return
      */
+    @RequestMapping("/userFindBooksByKeyword")
+    public String userFindBooksByKeyword(@RequestParam("bookPartInfo") String bookPartInfo,
+                                         @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+                                         @RequestParam(value = "bookCategory", defaultValue = "0") int bookCategory,
+                                         Model model) {
+        Page<BookVo> page = bookService.findBooksByKeyword(bookPartInfo, pageNum);
+        model.addAttribute("page", page);
+        model.addAttribute("keyword", bookPartInfo);
+        model.addAttribute("bookCategory", bookCategory);
+        model.addAttribute("searchType", "keyword");
+        return "user/findBook";
+    }
+
     @RequestMapping("/findBookByBookPartInfo")
     public String findBooksResultPage(@RequestParam("bookPartInfo") String bookPartInfo, Model model) {
-        
+
         List<BookVo> bookVos = bookService.selectBooksByBookPartInfo(bookPartInfo);
 
         model.addAttribute("bookList", bookVos);

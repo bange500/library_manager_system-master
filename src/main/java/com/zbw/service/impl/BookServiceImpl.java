@@ -96,6 +96,43 @@ public class BookServiceImpl implements IBookService {
     }
 
     @Override
+    public Page<BookVo> findBooksByKeyword(String keyword, int pageNum) {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Book> mpPage =
+            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNum, 10);
+        mpPage = bookMapper.selectPage(mpPage,
+            new LambdaQueryWrapper<Book>().like(Book::getBookName, keyword));
+
+        List<BookVo> bookVos = new LinkedList<>();
+        for (Book b : mpPage.getRecords()) {
+            BookVo bookVo = new BookVo();
+            bookVo.setBookId(b.getBookId());
+            bookVo.setBookName(b.getBookName());
+            bookVo.setBookAuthor(b.getBookAuthor());
+            bookVo.setBookPublish(b.getBookPublish());
+
+            List<BorrowingBooks> borrowingBooks = borrowingBooksMapper.selectList(
+                new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getBookId, b.getBookId()));
+
+            if (borrowingBooks == null || borrowingBooks.isEmpty()) {
+                bookVo.setIsExist("可借");
+            } else {
+                bookVo.setIsExist("不可借");
+            }
+            bookVos.add(bookVo);
+        }
+
+        Page<BookVo> page = new Page<>();
+        page.setList(bookVos);
+        page.setPageNum((int) mpPage.getCurrent());
+        page.setPageSize((int) mpPage.getSize());
+        page.setPageCount((int) mpPage.getPages());
+        if (mpPage.getTotal() == 0) {
+            page.setPageCount(1);
+        }
+        return page;
+    }
+
+    @Override
     public boolean isBookBorrowed(int bookId) {
         List<BorrowingBooks> list = borrowingBooksMapper.selectList(
             new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getBookId, bookId));

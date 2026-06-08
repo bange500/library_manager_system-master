@@ -8,6 +8,7 @@ import com.zbw.service.IBookService;
 import com.zbw.service.IBorrowingBooksRecordService;
 import com.zbw.service.IUserService;
 import com.zbw.utils.ExcelImportUtil;
+import com.zbw.utils.page.Page;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Controller;
@@ -43,9 +44,9 @@ public class UserController {
      * @return
      */
     @PostMapping("/userLogin")
-    public String userLogin(@Param("userName") String userName,
+    public String userLogin(@Param("userId") int userId,
                             @Param("password") String password, HttpServletRequest request) {
-        User user = userService.userLogin(userName, password);
+        User user = userService.userLogin(userId, password);
         
         if (null != user) {
             // flag = 0 表示用户名密码校验成功  【用于前端校验】
@@ -204,7 +205,11 @@ public class UserController {
      * 返回用户索书页面
      */
     @RequestMapping("/findBookPage")
-    public String findBookPage() {
+    public String findBookPage(Model model) {
+        Page<com.zbw.domain.Vo.BookVo> page = new Page<>();
+        page.setPageCount(1);
+        page.setPageNum(1);
+        model.addAttribute("page", page);
         return "user/findBook";
     }
 

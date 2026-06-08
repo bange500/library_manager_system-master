@@ -16,8 +16,8 @@ public interface IUserService {
     //查询所有部门
     List<Department> findAllDepts();
 
-    //用户登录
-    User userLogin(String userName, String password);
+    //用户登录（通过id）
+    User userLogin(int userId, String password);
 
     //更新用户信息
     boolean updateUser(User user, HttpServletRequest request);

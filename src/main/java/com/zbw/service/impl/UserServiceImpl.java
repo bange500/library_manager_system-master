@@ -43,15 +43,13 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public User userLogin(String userName, String password) {
-        List<User> users = findUserByUserName(userName);
-        if (null == users) {
+    public User userLogin(int userId, String password) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
             return null;
         }
-        for (User user : users) {
-            if (user.getUserPwd().equals(password)) {
-                return user;
-            }
+        if (user.getUserPwd().equals(password)) {
+            return user;
         }
         return null;
     }

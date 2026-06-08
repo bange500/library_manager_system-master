@@ -118,15 +118,20 @@ function findAllBookCategory() {
         url: "/findAllBookCategory",
         dataType: "json",
         success: function (data) {
-            console.log(data);
-
             $("select[name='bookCategory']").empty();
             $("select[name='bookCategory']").append('<option value="">——请选择——</option>');
             for (let i = 0; i < data.length; i++) {
-                let html = '<option value="' + data[i].categoryId + '">';
+                let selected = '';
+                if (typeof selectedCategory !== 'undefined' && selectedCategory > 0
+                    && data[i].categoryId == selectedCategory) {
+                    selected = ' selected';
+                }
+                let html = '<option value="' + data[i].categoryId + '"' + selected + '>';
                 html += data[i].categoryName + '</option>';
                 $("select[name='bookCategory']").append(html);
             }
+            // 重新渲染select以显示选中项
+            layui.form.render('select');
         },
         error: function (data) {
             alert(data.result);

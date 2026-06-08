@@ -2,23 +2,20 @@
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>图书管理系统 - 登录</title>
 
 
     <link rel="stylesheet" th:href="@{/layui/css/layui.css}">
     <style>
 
         body {
-            /*width: 100%;*/
-            /*height: 100%;*/
             background: url("/images/background.png") no-repeat;
-            /*background: url("static/images/a.png") no-repeat;*/
             background-size: cover;
         }
 
         #login_form {
             width: 400px;
-            height: 400px;
+            height: 420px;
             margin: 80px auto;
             padding: 30px;
             background-color: #f2f2f2;
@@ -42,10 +39,10 @@
         <form class="layui-form" id="my_form" method="post" action="/userLogin">
 
             <div class="layui-form-item">
-                <label class="layui-form-label">用户名:</label>
+                <label class="layui-form-label" id="loginLabel">用户ID:</label>
                 <div class="layui-input-block">
-                    <input type="text" name="userName" id="username" autofocus
-                           placeholder="请输入用户名" autocomplete="off" class="layui-input">
+                    <input type="text" name="userId" id="username" autofocus
+                           placeholder="请输入用户ID" autocomplete="off" class="layui-input">
                 </div>
             </div>
 
@@ -86,58 +83,70 @@
         let form = layui.form;
         form.render();
 
+        // 初始化错误提示
         $(function () {
             let flag = [[${session.flag}]];
             if (flag) {
-                layer.msg("用户名或密码错误", {
+                layer.msg("用户ID或密码错误", {
                     icon: 2,
-                    time: 2000 //2秒关闭（如果不配置，默认是3秒）
+                    time: 2000
                 });
+            }
+        });
+
+        // 角色切换时动态修改输入框的 name 和 placeholder
+        form.on('radio', function (data) {
+            var role = data.value;
+            if (role == 1) {
+                // 学生：使用用户ID登录
+                $("#loginLabel").text("用户ID:");
+                $("#username").attr("name", "userId");
+                $("#username").attr("placeholder", "请输入用户ID");
+            } else {
+                // 管理员：使用用户名登录
+                $("#loginLabel").text("用户名:");
+                $("#username").attr("name", "userName");
+                $("#username").attr("placeholder", "请输入用户名");
             }
         });
     });
 
-
+    // 登录按钮点击事件
     $("#sub_btn").click(function () {
         let username = $("#username").val();
         let user_judge = check(username);
 
-        // 首先判断用户名是否为空 
         if (user_judge) {
             let password = $("#password").val();
             let pwd_judge = check(password);
 
-            // 用户名不为空  , 判断密码是否为空
             if (pwd_judge) {
                 let role_id = $('input[name="role"]:checked').val();
 
-                // 如果role_id ==1 ,则是普通用户 , 直接提交表单
                 if (role_id == 1) {
+                    // 学生登录 → /userLogin
+                    $("#my_form").attr("action", "/userLogin");
                     $("#my_form").submit();
                 } else {
-
-                    //如果是管理员 , 则将action 进行更改 
-                    $("#my_form").attr("action", "/adminLogin")
+                    // 管理员登录 → /adminLogin
+                    $("#my_form").attr("action", "/adminLogin");
                     $("#my_form").submit();
                 }
-
             } else {
                 layer.alert("密码不能为空", {icon: 5});
                 return false;
             }
         } else {
-
-            layer.alert("用户名不能为空", {icon: 5});
+            var labelText = $("#loginLabel").text().replace(":", "");
+            layer.alert(labelText + "不能为空", {icon: 5});
             return false;
         }
     });
 
-    // 校验表单中用户名 与 密码是否输入,  如果有值 -> 返回 true , 如果未输入 返回 false;
     function check(val) {
         val = val.toString().trim();
         return !(val == '');
     }
-
 </script>
 </body>
 </html>
