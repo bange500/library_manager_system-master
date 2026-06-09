@@ -12,10 +12,12 @@ com\zbw\domain\BorrowingBooks.class
 com\zbw\mapper\AdminMapper.class
 com\zbw\domain\Admin.class
 com\zbw\service\IAdminService.class
+com\zbw\utils\PasswordUtil.class
 com\zbw\controller\BookController.class
 com\zbw\controller\AdminController.class
 com\zbw\utils\ExcelImportUtil$1.class
 com\zbw\utils\page\Page.class
+com\zbw\config\GlobalExceptionHandler.class
 com\zbw\domain\Department.class
 com\zbw\config\MyBatisPlusConfig.class
 com\zbw\service\IBookService.class

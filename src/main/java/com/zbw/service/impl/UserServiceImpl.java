@@ -8,6 +8,7 @@ import com.zbw.mapper.BorrowingBooksMapper;
 import com.zbw.mapper.DepartmentMapper;
 import com.zbw.mapper.UserMapper;
 import com.zbw.service.IUserService;
+import com.zbw.utils.PasswordUtil;
 import com.zbw.utils.page.Page;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -48,7 +49,13 @@ public class UserServiceImpl implements IUserService {
         if (user == null) {
             return null;
         }
-        if (user.getUserPwd().equals(password)) {
+        // BCrypt 验证，兼容旧明文密码
+        if (PasswordUtil.matches(password, user.getUserPwd())) {
+            // 若数据库中是旧明文密码，登录成功后自动升级为 BCrypt
+            if (PasswordUtil.needsUpgrade(user.getUserPwd())) {
+                user.setUserPwd(PasswordUtil.encode(password));
+                userMapper.updateById(user);
+            }
             return user;
         }
         return null;
@@ -58,6 +65,13 @@ public class UserServiceImpl implements IUserService {
     public boolean updateUser(User user, HttpServletRequest request) {
         User sessionUser = (User) request.getSession().getAttribute("user");
         user.setUserId(sessionUser.getUserId());
+
+        // 如果修改了密码且不是 BCrypt 密文，则加密
+        if (user.getUserPwd() != null && !user.getUserPwd().isEmpty()
+            && !PasswordUtil.isBcryptHash(user.getUserPwd())) {
+            user.setUserPwd(PasswordUtil.encode(user.getUserPwd()));
+        }
+
         int n = userMapper.updateById(user);
 
         if (n > 0) {
@@ -157,6 +171,10 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public int insertUser(User user) {
+        // 密码加密存储
+        if (user.getUserPwd() != null && !PasswordUtil.isBcryptHash(user.getUserPwd())) {
+            user.setUserPwd(PasswordUtil.encode(user.getUserPwd()));
+        }
         return userMapper.insert(user);
     }
 
@@ -164,6 +182,10 @@ public class UserServiceImpl implements IUserService {
     public int batchAddUsers(List<User> users) {
         int successCount = 0;
         for (User user : users) {
+            // 密码加密存储
+            if (user.getUserPwd() != null && !PasswordUtil.isBcryptHash(user.getUserPwd())) {
+                user.setUserPwd(PasswordUtil.encode(user.getUserPwd()));
+            }
             int n = userMapper.insert(user);
             if (n > 0) {
                 successCount++;

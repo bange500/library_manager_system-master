@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
+
 import jakarta.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +39,7 @@ public class BookController {
      */
     @RequestMapping("/addBook")
     @ResponseBody
-    public String addBook(Book book) {
+    public String addBook(@Valid Book book) {
         boolean res = adminService.addBook(book);
         if (res) {
             return "true";
@@ -124,7 +126,7 @@ public class BookController {
      */
     @RequestMapping("/addBookCategory")
     @ResponseBody
-    public String addBookCategory(BookCategory bookCategory) {
+    public String addBookCategory(@Valid BookCategory bookCategory) {
         boolean b = adminService.addBookCategory(bookCategory);
         if (b) {
             return "true";

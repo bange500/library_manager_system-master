@@ -22,7 +22,7 @@ DROP TABLE IF EXISTS `admin`;
 CREATE TABLE `admin` (
   `admin_id` int(11) NOT NULL AUTO_INCREMENT,
   `admin_name` varchar(20) DEFAULT NULL,
-  `admin_pwd` varchar(20) DEFAULT NULL,
+  `admin_pwd` varchar(200) DEFAULT NULL,
   `admin_email` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`admin_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
@@ -148,7 +148,7 @@ DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
   `user_id` int(11) NOT NULL AUTO_INCREMENT,
   `user_name` varchar(20) DEFAULT NULL,
-  `user_pwd` varchar(20) DEFAULT NULL,
+  `user_pwd` varchar(200) DEFAULT NULL,
   `user_email` varchar(30) DEFAULT NULL,
   PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8;

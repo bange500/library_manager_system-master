@@ -6,6 +6,7 @@ import com.zbw.mapper.AdminMapper;
 import com.zbw.mapper.BookCategoryMapper;
 import com.zbw.mapper.BookMapper;
 import com.zbw.service.IAdminService;
+import com.zbw.utils.PasswordUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +44,13 @@ public class AdminServiceImpl implements IAdminService {
             return null;
         }
         for (Admin a : admin) {
-            if (a.getAdminPwd().equals(password)) {
+            // BCrypt 验证，兼容旧明文密码
+            if (PasswordUtil.matches(password, a.getAdminPwd())) {
+                // 若数据库中是旧明文密码，登录成功后自动升级为 BCrypt
+                if (PasswordUtil.needsUpgrade(a.getAdminPwd())) {
+                    a.setAdminPwd(PasswordUtil.encode(password));
+                    adminMapper.updateById(a);
+                }
                 return a;
             }
         }
@@ -89,6 +96,13 @@ public class AdminServiceImpl implements IAdminService {
     public boolean updateAdmin(Admin admin, HttpServletRequest request) {
         Admin sessionAdmin = (Admin) request.getSession().getAttribute("admin");
         admin.setAdminId(sessionAdmin.getAdminId());
+
+        // 如果修改了密码且不是 BCrypt 密文，则加密
+        if (admin.getAdminPwd() != null && !admin.getAdminPwd().isEmpty()
+            && !PasswordUtil.isBcryptHash(admin.getAdminPwd())) {
+            admin.setAdminPwd(PasswordUtil.encode(admin.getAdminPwd()));
+        }
+
         int n = adminMapper.updateById(admin);
 
         if (n > 0) {

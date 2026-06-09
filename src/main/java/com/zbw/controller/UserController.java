@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
+
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -238,7 +240,7 @@ public class UserController {
      */
     @RequestMapping("/addUser")
     @ResponseBody
-    public String addUser(User user) {
+    public String addUser(@Valid User user) {
         int res = userService.insertUser(user);
         if (res > 0) {
             return "true";
