@@ -1,4 +1,4 @@
-# Code Wiki - 图书管理系统 (Library Manager System)
+# 图书管理系统 (Library Manager System)
 
 > 本文档基于项目源码自动生成，涵盖项目整体架构、模块职责、关键类与函数、依赖关系及运行方式等关键信息。
 
@@ -19,17 +19,17 @@
 
 ### 1.1 技术栈
 
-| 层级                 | 技术                                        |
-| -------------------- | ------------------------------------------- |
-| **前端**       | Thymeleaf、Layui、jQuery、Ajax              |
-| **后端框架**   | Spring Boot 3.3.2、Spring MVC               |
-| **ORM 框架**   | MyBatis-Plus 3.5.7                          |
-| **安全加密**   | Spring Security Crypto (BCrypt)             |
-| **参数校验**   | Spring Boot Validation (Jakarta @Valid)     |
-| **数据库驱动** | mysql-connector-j                           |
-| **工具库**     | Lombok、Apache POI (Excel 导入)             |
-| **构建工具**   | Maven                                       |
-| **热部署**     | Spring Boot DevTools                        |
+| 层级                 | 技术                                    |
+| -------------------- | --------------------------------------- |
+| **前端**       | Thymeleaf、Layui、jQuery、Ajax          |
+| **后端框架**   | Spring Boot 3.3.2、Spring MVC           |
+| **ORM 框架**   | MyBatis-Plus 3.5.7                      |
+| **安全加密**   | Spring Security Crypto (BCrypt)         |
+| **参数校验**   | Spring Boot Validation (Jakarta @Valid) |
+| **数据库驱动** | mysql-connector-j                       |
+| **工具库**     | Lombok、Apache POI (Excel 导入)         |
+| **构建工具**   | Maven                                   |
+| **热部署**     | Spring Boot DevTools                    |
 
 ---
 
@@ -185,16 +185,16 @@ library_manager_system-master/
 
 ### 4.3 实体/VO 模块 (`domain`)
 
-| 类名                 | 说明                                               | 校验注解                              |
-| -------------------- | -------------------------------------------------- | ------------------------------------- |
+| 类名                 | 说明                                               | 校验注解                                  |
+| -------------------- | -------------------------------------------------- | ----------------------------------------- |
 | `Admin`            | 管理员实体                                         | `@NotBlank`, `@Size`, `@Email`      |
 | `User`             | 用户实体                                           | `@NotBlank`, `@Size`, `@Email`      |
 | `Book`             | 图书实体                                           | `@NotBlank`, `@Size`, `@DecimalMin` |
-| `BookCategory`     | 图书类别实体                                       | `@NotBlank`, `@Size`                |
-| `BorrowingBooks`   | 借阅记录实体                                       | —                                     |
-| `Department`       | 部门实体                                           | —                                     |
-| `BookVo`           | 图书视图对象（含是否可借状态）                     | —                                     |
-| `BorrowingBooksVo` | 借阅记录视图对象（含 User、Book 对象及格式化日期） | —                                     |
+| `BookCategory`     | 图书类别实体                                       | `@NotBlank`, `@Size`                  |
+| `BorrowingBooks`   | 借阅记录实体                                       | —                                        |
+| `Department`       | 部门实体                                           | —                                        |
+| `BookVo`           | 图书视图对象（含是否可借状态）                     | —                                        |
+| `BorrowingBooksVo` | 借阅记录视图对象（含 User、Book 对象及格式化日期） | —                                        |
 
 ### 4.4 数据层模块 (`mapper`)
 
@@ -213,27 +213,27 @@ library_manager_system-master/
 
 #### 接口定义
 
-| 接口                             | 职责                                               |
-| -------------------------------- | -------------------------------------------------- |
-| `IAdminService`                | 管理员登录验证、图书/类别增删、批量导入图书        |
-| `IBookService`                 | 图书关键字/类别查询、借阅状态检查                  |
-| `IBookCategoryService`         | 图书类别分页查询、删除类别                         |
-| `IBorrowingBooksRecordService` | 借阅记录分页查询（管理员/用户）、删除记录          |
+| 接口                             | 职责                                                 |
+| -------------------------------- | ---------------------------------------------------- |
+| `IAdminService`                | 管理员登录验证、图书/类别增删、批量导入图书          |
+| `IBookService`                 | 图书关键字/类别查询、借阅状态检查                    |
+| `IBookCategoryService`         | 图书类别分页查询、删除类别                           |
+| `IBorrowingBooksRecordService` | 借阅记录分页查询（管理员/用户）、删除记录            |
 | `IUserService`                 | 用户ID登录/增删/分页、借还书、部门查询、批量导入用户 |
 
 #### 实现类关键逻辑
 
-| 实现类                              | 关键逻辑说明                                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session                     |
-| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件        |
-| `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                       |
-| `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                 |
+| 实现类                              | 关键逻辑说明                                                                                             |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session                           |
+| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件            |
+| `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                             |
+| `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                     |
 | `UserServiceImpl`                 | BCrypt 密码验证+自动升级；新增/批量导入时密码自动加密；借书时检查是否已被借阅；还书按 userId+bookId 删除 |
 
 ### 4.6 工具类模块 (`utils`)
 
-#### Page`<T>`
+#### Page `<T>`
 
 - **路径**: `com.zbw.utils.page.Page`
 - **职责**: 通用分页封装对象
@@ -304,23 +304,23 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 
 ### 5.3 核心 Controller 接口
 
-| 接口路径                      | 请求方式 | 所属 Controller     | 功能                                        |
-| ----------------------------- | -------- | ------------------- | ------------------------------------------- |
-| `/adminLogin`               | POST     | AdminController     | 管理员登录（用户名），Session 存储 admin     |
-| `/userLogin`                | POST     | UserController      | 用户登录（用户ID），Session 存储 user       |
-| `/addBook`                  | 任意     | BookController      | 录入新书，带 `@Valid` 校验                  |
-| `/deleteBook`               | 任意     | BookController      | 删除图书（借阅中则拒绝，需二次确认）        |
-| `/checkBookStatus`          | 任意     | BookController      | 检查图书借阅状态                            |
-| `/findBooksByCategoryId`    | 任意     | BookController      | 查询类别下所有图书（删除类别前检查用）      |
-| `/importBooksByExcel`       | 任意     | BookController      | Excel 批量导入图书                          |
-| `/importUsersByExcel`       | 任意     | UserController      | Excel 批量导入用户                          |
-| `/addUser`                  | 任意     | UserController      | 添加用户，带 `@Valid` 校验                  |
-| `/userBorrowingBook`        | 任意     | UserController      | 用户借书                                    |
-| `/userReturnBook`           | 任意     | UserController      | 用户还书                                    |
-| `/userShowBooksByCategory`  | 任意     | BookController      | 用户端按类别分页查询图书                    |
-| `/userFindBooksByKeyword`   | 任意     | BookController      | 用户端按关键字分页查询图书                  |
-| `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录                      |
-| `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                        |
+| 接口路径                      | 请求方式 | 所属 Controller     | 功能                                     |
+| ----------------------------- | -------- | ------------------- | ---------------------------------------- |
+| `/adminLogin`               | POST     | AdminController     | 管理员登录（用户名），Session 存储 admin |
+| `/userLogin`                | POST     | UserController      | 用户登录（用户ID），Session 存储 user    |
+| `/addBook`                  | 任意     | BookController      | 录入新书，带 `@Valid` 校验             |
+| `/deleteBook`               | 任意     | BookController      | 删除图书（借阅中则拒绝，需二次确认）     |
+| `/checkBookStatus`          | 任意     | BookController      | 检查图书借阅状态                         |
+| `/findBooksByCategoryId`    | 任意     | BookController      | 查询类别下所有图书（删除类别前检查用）   |
+| `/importBooksByExcel`       | 任意     | BookController      | Excel 批量导入图书                       |
+| `/importUsersByExcel`       | 任意     | UserController      | Excel 批量导入用户                       |
+| `/addUser`                  | 任意     | UserController      | 添加用户，带 `@Valid` 校验             |
+| `/userBorrowingBook`        | 任意     | UserController      | 用户借书                                 |
+| `/userReturnBook`           | 任意     | UserController      | 用户还书                                 |
+| `/userShowBooksByCategory`  | 任意     | BookController      | 用户端按类别分页查询图书                 |
+| `/userFindBooksByKeyword`   | 任意     | BookController      | 用户端按关键字分页查询图书               |
+| `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录                   |
+| `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                     |
 
 ---
 
