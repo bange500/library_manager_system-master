@@ -6,28 +6,28 @@
 
 ## 一、项目概览
 
-| 属性 | 说明 |
-|------|------|
-| **项目名称** | springboot-library_manager_system |
-| **GroupId** | com.zbw |
-| **ArtifactId** | demo |
-| **版本** | 0.0.1-SNAPSHOT |
-| **打包方式** | JAR |
-| **JDK 版本** | Java 17 |
-| **Spring Boot 版本** | 3.2.5 |
-| **数据库** | MySQL 5.7+ |
+| 属性                       | 说明                              |
+| -------------------------- | --------------------------------- |
+| **项目名称**         | springboot-library_manager_system |
+| **GroupId**          | com.zbw                           |
+| **ArtifactId**       | demo                              |
+| **版本**             | 0.0.1-SNAPSHOT                    |
+| **打包方式**         | JAR                               |
+| **JDK 版本**         | Java 17                           |
+| **Spring Boot 版本** | 3.3.2                             |
+| **数据库**           | MySQL 5.7+                        |
 
 ### 1.1 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **前端** | Thymeleaf、Layui、jQuery、Ajax |
-| **后端框架** | Spring Boot 3.2.5、Spring MVC |
-| **ORM 框架** | MyBatis-Plus 3.5.7 |
-| **数据库驱动** | mysql-connector-j |
-| **工具库** | Lombok、Apache POI (Excel 导入) |
-| **构建工具** | Maven |
-| **热部署** | Spring Boot DevTools |
+| 层级                 | 技术                            |
+| -------------------- | ------------------------------- |
+| **前端**       | Thymeleaf、Layui、jQuery、Ajax  |
+| **后端框架**   | Spring Boot 3.3.2、Spring MVC   |
+| **ORM 框架**   | MyBatis-Plus 3.5.7              |
+| **数据库驱动** | mysql-connector-j               |
+| **工具库**     | Lombok、Apache POI (Excel 导入) |
+| **构建工具**   | Maven                           |
+| **热部署**     | Spring Boot DevTools            |
 
 ---
 
@@ -86,14 +86,14 @@ library_manager_system-master/
 
 ### 3.1 表结构概览
 
-| 表名 | 说明 | 主要字段 |
-|------|------|----------|
-| `admin` | 管理员表 | admin_id, admin_name, admin_pwd, admin_email |
-| `user` | 用户表 | user_id, user_name, user_pwd, user_email |
-| `book` | 图书表 | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction |
-| `book_category` | 图书类别表 | category_id, category_name |
-| `borrowingbooks` | 借阅记录表 | id, user_id, book_id, date |
-| `dept` | 部门表 | dept_id, dept_name |
+| 表名               | 说明       | 主要字段                                                                                    |
+| ------------------ | ---------- | ------------------------------------------------------------------------------------------- |
+| `admin`          | 管理员表   | admin_id, admin_name, admin_pwd, admin_email                                                |
+| `user`           | 用户表     | user_id, user_name, user_pwd, user_email                                                    |
+| `book`           | 图书表     | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction |
+| `book_category`  | 图书类别表 | category_id, category_name                                                                  |
+| `borrowingbooks` | 借阅记录表 | id, user_id, book_id, date                                                                  |
+| `dept`           | 部门表     | dept_id, dept_name                                                                          |
 
 ### 3.2 表关系
 
@@ -103,9 +103,9 @@ library_manager_system-master/
 
 ### 3.3 默认测试账号
 
-| 账号 | 密码 | 角色 |
-|------|------|------|
-| admin | 123456 | 管理员 |
+| 账号  | 密码   | 角色     |
+| ----- | ------ | -------- |
+| admin | 123456 | 管理员   |
 | user1 | 123456 | 普通用户 |
 | user2 | 123456 | 普通用户 |
 
@@ -116,6 +116,7 @@ library_manager_system-master/
 ### 4.1 配置模块 (`config`)
 
 #### MyBatisPlusConfig
+
 - **路径**: `com.zbw.config.MyBatisPlusConfig`
 - **职责**: 注册 MyBatis-Plus 分页拦截器，支持 MySQL 物理分页
 - **关键 Bean**: `MybatisPlusInterceptor` → `PaginationInnerInterceptor(DbType.MYSQL)`
@@ -123,6 +124,7 @@ library_manager_system-master/
 ### 4.2 控制层模块 (`controller`)
 
 #### AdminController
+
 - **路径**: `com.zbw.controller.AdminController`
 - **职责**: 处理管理员相关的页面跳转与接口请求
 - **主要功能**:
@@ -133,6 +135,7 @@ library_manager_system-master/
   - 退出登录 (`/adminLogOut`)
 
 #### BookController
+
 - **路径**: `com.zbw.controller.BookController`
 - **职责**: 处理图书与图书类别的增删查及 Excel 批量导入
 - **主要功能**:
@@ -145,6 +148,7 @@ library_manager_system-master/
   - Excel 批量导入图书 (`/importBooksByExcel`)
 
 #### BorrowingController
+
 - **路径**: `com.zbw.controller.BorrowingController`
 - **职责**: 处理借阅记录的管理员视角操作
 - **主要功能**:
@@ -152,6 +156,7 @@ library_manager_system-master/
   - 管理员删除借阅记录 (`/deleteBorrowingRecord`)
 
 #### UserController
+
 - **路径**: `com.zbw.controller.UserController`
 - **职责**: 处理普通用户相关的登录、借还书、个人信息及用户管理
 - **主要功能**:
@@ -166,60 +171,62 @@ library_manager_system-master/
 
 ### 4.3 实体/VO 模块 (`domain`)
 
-| 类名 | 说明 |
-|------|------|
-| `Admin` | 管理员实体 |
-| `User` | 用户实体 |
-| `Book` | 图书实体 |
-| `BookCategory` | 图书类别实体 |
-| `BorrowingBooks` | 借阅记录实体 |
-| `Department` | 部门实体 |
-| `BookVo` | 图书视图对象（含是否可借状态） |
+| 类名                 | 说明                                               |
+| -------------------- | -------------------------------------------------- |
+| `Admin`            | 管理员实体                                         |
+| `User`             | 用户实体                                           |
+| `Book`             | 图书实体                                           |
+| `BookCategory`     | 图书类别实体                                       |
+| `BorrowingBooks`   | 借阅记录实体                                       |
+| `Department`       | 部门实体                                           |
+| `BookVo`           | 图书视图对象（含是否可借状态）                     |
 | `BorrowingBooksVo` | 借阅记录视图对象（含 User、Book 对象及格式化日期） |
 
 ### 4.4 数据层模块 (`mapper`)
 
 所有 Mapper 均继承 `BaseMapper<T>`，采用 MyBatis-Plus 提供的通用 CRUD，**无自定义 XML**。
 
-| Mapper | 对应实体 |
-|--------|----------|
-| `AdminMapper` | Admin |
-| `UserMapper` | User |
-| `BookMapper` | Book |
-| `BookCategoryMapper` | BookCategory |
+| Mapper                   | 对应实体       |
+| ------------------------ | -------------- |
+| `AdminMapper`          | Admin          |
+| `UserMapper`           | User           |
+| `BookMapper`           | Book           |
+| `BookCategoryMapper`   | BookCategory   |
 | `BorrowingBooksMapper` | BorrowingBooks |
-| `DepartmentMapper` | Department |
+| `DepartmentMapper`     | Department     |
 
 ### 4.5 业务层模块 (`service`)
 
 #### 接口定义
 
-| 接口 | 职责 |
-|------|------|
-| `IAdminService` | 管理员登录验证、图书/类别增删、批量导入图书 |
-| `IBookService` | 图书关键字/类别查询、借阅状态检查 |
-| `IBookCategoryService` | 图书类别分页查询、删除类别 |
-| `IBorrowingBooksRecordService` | 借阅记录分页查询（管理员/用户）、删除记录 |
-| `IUserService` | 用户登录/增删/分页、借还书、部门查询、批量导入用户 |
+| 接口                             | 职责                                               |
+| -------------------------------- | -------------------------------------------------- |
+| `IAdminService`                | 管理员登录验证、图书/类别增删、批量导入图书        |
+| `IBookService`                 | 图书关键字/类别查询、借阅状态检查                  |
+| `IBookCategoryService`         | 图书类别分页查询、删除类别                         |
+| `IBorrowingBooksRecordService` | 借阅记录分页查询（管理员/用户）、删除记录          |
+| `IUserService`                 | 用户登录/增删/分页、借还书、部门查询、批量导入用户 |
 
 #### 实现类关键逻辑
 
-| 实现类 | 关键逻辑说明 |
-|--------|-------------|
-| `AdminServiceImpl` | 使用 `LambdaQueryWrapper` 做等值查询；更新管理员后刷新 Session |
-| `BookServiceImpl` | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件 |
-| `BookCategoryServiceImpl` | 分页封装到自定义 `Page<T>` |
-| `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月） |
-| `UserServiceImpl` | 借书时检查图书是否已被借阅；还书时按 userId + bookId 删除记录 |
+| 实现类                              | 关键逻辑说明                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `AdminServiceImpl`                | 使用 `LambdaQueryWrapper` 做等值查询；更新管理员后刷新 Session                              |
+| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件 |
+| `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                  |
+| `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）          |
+| `UserServiceImpl`                 | 借书时检查图书是否已被借阅；还书时按 userId + bookId 删除记录                                 |
 
 ### 4.6 工具类模块 (`utils`)
 
-#### Page<T>
+#### Page`<T>`
+
 - **路径**: `com.zbw.utils.page.Page`
 - **职责**: 通用分页封装对象
 - **字段**: `list`, `pageNum`, `pageSize`, `pageCount`
 
 #### ExcelImportUtil
+
 - **路径**: `com.zbw.utils.ExcelImportUtil`
 - **职责**: 基于 Apache POI 解析 Excel 文件，支持 `.xlsx` 和 `.xls`
 - **主要方法**:
@@ -235,6 +242,7 @@ library_manager_system-master/
 ### 5.1 入口类
 
 #### DemoApplication
+
 - **路径**: `com.zbw.DemoApplication`
 - **注解**:
   - `@SpringBootApplication` — Spring Boot 自动配置
@@ -263,18 +271,18 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 
 ### 5.3 核心 Controller 接口
 
-| 接口路径 | 请求方式 | 所属 Controller | 功能 |
-|----------|----------|----------------|------|
-| `/adminLogin` | POST | AdminController | 管理员登录，Session 存储 admin 对象 |
-| `/userLogin` | POST | UserController | 用户登录，Session 存储 user 对象 |
-| `/addBook` | 任意 | BookController | 录入新书 |
-| `/deleteBook` | 任意 | BookController | 删除图书（借阅中则拒绝） |
-| `/importBooksByExcel` | 任意 | BookController | Excel 批量导入图书 |
-| `/importUsersByExcel` | 任意 | UserController | Excel 批量导入用户 |
-| `/userBorrowingBook` | 任意 | UserController | 用户借书 |
-| `/userReturnBook` | 任意 | UserController | 用户还书 |
-| `/allBorrowBooksRecordPage` | 任意 | BorrowingController | 管理员查看所有借阅记录 |
-| `/userBorrowBookRecord` | 任意 | UserController | 用户查看个人借阅记录 |
+| 接口路径                      | 请求方式 | 所属 Controller     | 功能                                |
+| ----------------------------- | -------- | ------------------- | ----------------------------------- |
+| `/adminLogin`               | POST     | AdminController     | 管理员登录，Session 存储 admin 对象 |
+| `/userLogin`                | POST     | UserController      | 用户登录，Session 存储 user 对象    |
+| `/addBook`                  | 任意     | BookController      | 录入新书                            |
+| `/deleteBook`               | 任意     | BookController      | 删除图书（借阅中则拒绝）            |
+| `/importBooksByExcel`       | 任意     | BookController      | Excel 批量导入图书                  |
+| `/importUsersByExcel`       | 任意     | UserController      | Excel 批量导入用户                  |
+| `/userBorrowingBook`        | 任意     | UserController      | 用户借书                            |
+| `/userReturnBook`           | 任意     | UserController      | 用户还书                            |
+| `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录              |
+| `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                |
 
 ---
 
@@ -412,28 +420,28 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 
 ### 9.1 模板目录 (`templates`)
 
-| 目录 | 页面 | 说明 |
-|------|------|------|
-| `admin/` | `index.html` | 管理员首页 |
-| | `addBook.html` | 添加图书 |
-| | `addCategory.html` | 添加图书类别 |
-| | `showBooks.html` | 查询图书 |
-| | `showUsers.html` | 用户管理 |
-| | `addUser.html` | 添加用户 |
-| | `importBooks.html` | 批量导入图书 |
-| | `importUsers.html` | 批量导入用户 |
-| | `allBorrowingBooksRecord.html` | 所有借阅记录 |
-| | `adminInfo.html` | 管理员信息修改 |
-| `user/` | `index.html` | 用户首页 |
-| | `findBook.html` | 查找图书 |
-| | `borrowingBooks.html` | 借书页面 |
-| | `returnBooks.html` | 还书页面 |
-| | `borrowingBooksRecord.html` | 个人借书记录 |
-| | `userMessage.html` | 个人信息 |
-| `common/` | `admin_header.html` | 管理员公共头部 |
-| | `user_header.html` | 用户公共头部 |
-| | `footer.html` | 公共底部 |
-| 根目录 | `index.html` | 登录首页 |
+| 目录        | 页面                             | 说明           |
+| ----------- | -------------------------------- | -------------- |
+| `admin/`  | `index.html`                   | 管理员首页     |
+|             | `addBook.html`                 | 添加图书       |
+|             | `addCategory.html`             | 添加图书类别   |
+|             | `showBooks.html`               | 查询图书       |
+|             | `showUsers.html`               | 用户管理       |
+|             | `addUser.html`                 | 添加用户       |
+|             | `importBooks.html`             | 批量导入图书   |
+|             | `importUsers.html`             | 批量导入用户   |
+|             | `allBorrowingBooksRecord.html` | 所有借阅记录   |
+|             | `adminInfo.html`               | 管理员信息修改 |
+| `user/`   | `index.html`                   | 用户首页       |
+|             | `findBook.html`                | 查找图书       |
+|             | `borrowingBooks.html`          | 借书页面       |
+|             | `returnBooks.html`             | 还书页面       |
+|             | `borrowingBooksRecord.html`    | 个人借书记录   |
+|             | `userMessage.html`             | 个人信息       |
+| `common/` | `admin_header.html`            | 管理员公共头部 |
+|             | `user_header.html`             | 用户公共头部   |
+|             | `footer.html`                  | 公共底部       |
+| 根目录      | `index.html`                   | 登录首页       |
 
 ### 9.2 静态资源 (`static`)
 
@@ -448,14 +456,14 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 
 ### 10.1 测试类列表
 
-| 测试类 | 路径 | 说明 |
-|--------|------|------|
-| `DemoApplicationTests` | `com.zbw.DemoApplicationTests` | 基础上下文加载测试 |
-| `BookCategoryMapperTest` | `com.zbw.BookCategoryMapperTest` | 图书类别 Mapper 测试 |
-| `BookServiceTest` | `com.zbw.BookServiceTest` | 图书 Service 测试 |
+| 测试类                       | 路径                                 | 说明                 |
+| ---------------------------- | ------------------------------------ | -------------------- |
+| `DemoApplicationTests`     | `com.zbw.DemoApplicationTests`     | 基础上下文加载测试   |
+| `BookCategoryMapperTest`   | `com.zbw.BookCategoryMapperTest`   | 图书类别 Mapper 测试 |
+| `BookServiceTest`          | `com.zbw.BookServiceTest`          | 图书 Service 测试    |
 | `BorrowingBooksMapperTest` | `com.zbw.BorrowingBooksMapperTest` | 借阅记录 Mapper 测试 |
-| `TestController` | `com.zbw.TestController` | 测试用 Controller |
-| `UserTest` | `com.zbw.UserTest` | 用户相关测试 |
+| `TestController`           | `com.zbw.TestController`           | 测试用 Controller    |
+| `UserTest`                 | `com.zbw.UserTest`                 | 用户相关测试         |
 
 ---
 
@@ -477,5 +485,3 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 4. **前端校验**：部分业务逻辑依赖前端校验，后端需加强参数校验（如 `@Valid`）。
 
 ---
-
-> 
