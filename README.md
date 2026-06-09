@@ -14,7 +14,7 @@
 | **版本**             | 0.0.1-SNAPSHOT                    |
 | **打包方式**         | JAR                               |
 | **JDK 版本**         | Java 17                           |
-| **Spring Boot 版本** | 3.2.5                             |
+| **Spring Boot 版本** | 3.3.2                             |
 | **数据库**           | MySQL 5.7+                        |
 
 ### 1.1 技术栈
@@ -22,7 +22,7 @@
 | 层级                 | 技术                                        |
 | -------------------- | ------------------------------------------- |
 | **前端**       | Thymeleaf、Layui、jQuery、Ajax              |
-| **后端框架**   | Spring Boot 3.2.5、Spring MVC               |
+| **后端框架**   | Spring Boot 3.3.2、Spring MVC               |
 | **ORM 框架**   | MyBatis-Plus 3.5.7                          |
 | **安全加密**   | Spring Security Crypto (BCrypt)             |
 | **参数校验**   | Spring Boot Validation (Jakarta @Valid)     |
@@ -331,11 +331,11 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 ```
 demo (0.0.1-SNAPSHOT)
 │
-├── spring-boot-starter-web (3.2.5)
+├── spring-boot-starter-web (3.3.2)
 │   └── 内置 Tomcat + Spring MVC
-├── spring-boot-starter-thymeleaf (3.2.5)
+├── spring-boot-starter-thymeleaf (3.3.2)
 │   └── Thymeleaf 模板引擎
-├── spring-boot-starter-validation (3.2.5)
+├── spring-boot-starter-validation (3.3.2)
 │   └── Jakarta Bean Validation（@Valid, @NotBlank 等）
 ├── spring-security-crypto
 │   └── BCryptPasswordEncoder（密码加密）
