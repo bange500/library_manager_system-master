@@ -5,6 +5,7 @@ import com.zbw.domain.Vo.BookVo;
 import com.zbw.utils.page.Page;
 
 import java.util.List;
+import java.util.Map;
 
 public interface IBookService {
 
@@ -48,4 +49,46 @@ public interface IBookService {
      * @return true=被借阅中, false=可借
      */
     boolean isBookBorrowed(int bookId);
+
+    /**
+     * 根据书籍id查询单本完整详情（含扩展信息）
+     *
+     * @param bookId
+     * @return
+     */
+    Book getBookDetailById(Integer bookId);
+
+    /**
+     * 根据书籍id查询当前被借出的数量
+     *
+     * @param bookId
+     * @return
+     */
+    int getBorrowedCountByBookId(Integer bookId);
+
+    /**
+     * 根据ISBN查询书籍
+     *
+     * @param isbn
+     * @return
+     */
+    List<Book> findByIsbn(String isbn);
+
+    /**
+     * 根据类别ID获取推荐图书（同类别下排除当前书籍，从 Redis 缓存读取）
+     *
+     * @param categoryId     书籍类别ID
+     * @param excludeBookId  排除的书籍ID
+     * @param limit          返回数量
+     * @return
+     */
+    List<Book> getRecommendBooks(int categoryId, int excludeBookId, int limit);
+
+    /**
+     * 全量刷新推荐缓存（管理员手动触发）
+     * 查询所有图书 → 过滤已借出 → 按分类分组 → 写入 Redis SET → 清理旧数据
+     *
+     * @return 同步结果摘要（总分类数、总可借图书数等）
+     */
+    Map<String, Object> refreshRecommendCache();
 }

@@ -9,4 +9,6 @@ public interface IBookCategoryService {
     public Page<BookCategory> selectBookCategoryByPageNum(int pageNum);
 
     int deleteBookCategoryById(int bookCategoryId);
+
+    BookCategory getCategoryById(Integer categoryId);
 }

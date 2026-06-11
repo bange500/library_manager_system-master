@@ -20,10 +20,11 @@ public class ExcelImportUtil {
 
     /**
      * 从 Excel 文件解析图书列表
-     * Excel 表头：书名 | 作者 | 出版社 | 类别ID | 价格 | 简介
+     * Excel 表头：书名 | 作者 | 出版社 | 类别ID | 价格 | ISBN | 出版日期 | 入库数量 | 简介
+     * 返回带行号的 ImportBookResult 列表，支持逐行校验和错误报告
      */
-    public static List<Book> parseBooksFromExcel(MultipartFile file) throws Exception {
-        List<Book> books = new ArrayList<>();
+    public static List<ImportBookResult> parseBooksFromExcel(MultipartFile file) throws Exception {
+        List<ImportBookResult> results = new ArrayList<>();
         Workbook workbook = getWorkbook(file);
         Sheet sheet = workbook.getSheetAt(0);
 
@@ -31,43 +32,114 @@ public class ExcelImportUtil {
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
             if (row == null) continue;
-
-            // 跳过全空行
             if (isRowEmpty(row)) continue;
+
+            ImportBookResult result = new ImportBookResult();
+            result.setRowNum(i + 1); // Excel行号（1-based）
 
             try {
                 Book book = new Book();
+
+                // 列0: 书名
                 book.setBookName(getCellStringValue(row.getCell(0)));
+
+                // 列1: 作者
                 book.setBookAuthor(getCellStringValue(row.getCell(1)));
+
+                // 列2: 出版社
                 book.setBookPublish(getCellStringValue(row.getCell(2)));
 
-                // 类别ID（整数）
+                // 列3: 类别ID
                 String categoryStr = getCellStringValue(row.getCell(3));
                 if (categoryStr != null && !categoryStr.isEmpty()) {
                     book.setBookCategory((int) Double.parseDouble(categoryStr));
                 }
 
-                // 价格
+                // 列4: 价格
                 String priceStr = getCellStringValue(row.getCell(4));
                 if (priceStr != null && !priceStr.isEmpty()) {
                     book.setBookPrice(Double.parseDouble(priceStr));
                 }
 
-                book.setBookIntroduction(getCellStringValue(row.getCell(5)));
+                // 列5: ISBN（新增）
+                book.setIsbn(getCellStringValue(row.getCell(5)));
+
+                // 列6: 出版日期（新增）
+                String dateStr = getCellStringValue(row.getCell(6));
+                if (dateStr != null && !dateStr.isEmpty()) {
+                    try {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                        sdf.setLenient(false);
+                        book.setPublishDate(sdf.parse(dateStr));
+                    } catch (Exception e) {
+                        result.setError("出版日期格式不正确，应为 yyyy-MM-dd");
+                        result.setBook(book);
+                        results.add(result);
+                        continue;
+                    }
+                }
+
+                // 列7: 入库数量（新增）
+                String stockStr = getCellStringValue(row.getCell(7));
+                if (stockStr != null && !stockStr.isEmpty()) {
+                    try {
+                        int stock = (int) Double.parseDouble(stockStr);
+                        if (stock < 0) {
+                            result.setError("入库数量不能为负数");
+                            result.setBook(book);
+                            results.add(result);
+                            continue;
+                        }
+                        book.setTotalStock(stock);
+                    } catch (Exception e) {
+                        result.setError("入库数量格式不正确，应为整数");
+                        result.setBook(book);
+                        results.add(result);
+                        continue;
+                    }
+                }
+
+                // 列8: 简介
+                book.setBookIntroduction(getCellStringValue(row.getCell(8)));
 
                 // 基本校验：书名不能为空
                 if (book.getBookName() == null || book.getBookName().trim().isEmpty()) {
+                    result.setError("书名不能为空");
+                    result.setBook(book);
+                    results.add(result);
                     continue;
                 }
 
-                books.add(book);
+                result.setBook(book);
+                result.setSuccess(true);
+                results.add(result);
+
             } catch (Exception e) {
-                // 跳过解析失败的行
-                System.err.println("解析第" + (i + 1) + "行失败: " + e.getMessage());
+                result.setError("解析失败: " + e.getMessage());
+                results.add(result);
             }
         }
         workbook.close();
-        return books;
+        return results;
+    }
+
+    /**
+     * 导入结果包装类
+     */
+    public static class ImportBookResult {
+        private int rowNum;
+        private boolean success;
+        private Book book;
+        private String error;
+
+        public int getRowNum() { return rowNum; }
+        public void setRowNum(int rowNum) { this.rowNum = rowNum; }
+        public boolean isSuccess() { return success; }
+        public void setSuccess(boolean success) { this.success = success; }
+        public Book getBook() { return book; }
+        public void setBook(Book book) { this.book = book; }
+        public String getError() { return error; }
+        public void setError(String error) { this.error = error; }
     }
 
     /**

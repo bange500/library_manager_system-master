@@ -18,6 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 
 import jakarta.annotation.Resource;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +35,7 @@ public class BookController {
     private IBookCategoryService bookCategoryService;
 
     /**
-     * 管理员&emsp;&emsp;录入新书
+     * 管理员&emsp;&emsp;录入新书（含新增字段：ISBN/出版日期/总库存校验）
      *
      * @param book
      * @return
@@ -40,11 +43,55 @@ public class BookController {
     @RequestMapping("/addBook")
     @ResponseBody
     public String addBook(@Valid Book book) {
+        // 1. ISBN唯一性校验
+        if (book.getIsbn() != null && !book.getIsbn().trim().isEmpty()) {
+            book.setIsbn(book.getIsbn().trim());
+            List<Book> existBooks = bookService.findByIsbn(book.getIsbn());
+            if (existBooks != null && !existBooks.isEmpty()) {
+                return "ISBN已存在，请更换";
+            }
+        }
+
+        // 2. 出版日期字符串转Date
+        if (book.getPublishDateStr() != null && !book.getPublishDateStr().trim().isEmpty()) {
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                sdf.setLenient(false);
+                book.setPublishDate(sdf.parse(book.getPublishDateStr().trim()));
+            } catch (Exception e) {
+                return "出版日期格式不正确，应为 yyyy-MM-dd";
+            }
+        }
+
+        // 3. 总库存校验
+        if (book.getTotalStock() == null || book.getTotalStock() < 0) {
+            return "库存必须为非负整数";
+        }
+
         boolean res = adminService.addBook(book);
         if (res) {
             return "true";
         }
-        return "false";
+        return "添加失败，请重试";
+    }
+
+    /**
+     * 校验ISBN是否唯一（供前端AJAX调用）
+     *
+     * @param isbn
+     * @return true=唯一可用, false=已存在
+     */
+    @RequestMapping("/checkIsbnUnique")
+    @ResponseBody
+    public String checkIsbnUnique(@RequestParam("isbn") String isbn) {
+        if (isbn == null || isbn.trim().isEmpty()) {
+            return "false";
+        }
+        List<Book> existBooks = bookService.findByIsbn(isbn.trim());
+        if (existBooks != null && !existBooks.isEmpty()) {
+            return "false";
+        }
+        return "true";
     }
 
     /**
@@ -167,6 +214,127 @@ public class BookController {
     }
 
     /**
+     * 根据图书id查询图书完整详情（含分类名、库存、借阅状态等）
+     * 所有字段均返回非null值，前端无需额外判空
+     *
+     * @param bookId
+     * @return
+     */
+    @RequestMapping("/getBookDetail")
+    @ResponseBody
+    public Map<String, Object> getBookDetail(@RequestParam("bookId") int bookId) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 无论如何先填充默认值，防止前端收到 null
+        result.put("success", false);
+        result.put("msg", "未知错误");
+        result.put("bookId", bookId);
+        result.put("bookName", "");
+        result.put("bookAuthor", "");
+        result.put("bookPublish", "");
+        result.put("isExist", "未知");
+        result.put("isbn", "");
+        result.put("categoryName", "");
+        result.put("categoryId", 0);
+        result.put("publishDate", "");
+        result.put("bookIntroduction", "");
+        result.put("totalStock", 0);
+        result.put("availableCount", 0);
+
+        Book book = bookService.getBookDetailById(bookId);
+        if (book == null) {
+            result.put("msg", "书籍不存在");
+            return result;
+        }
+
+        // 查询分类名
+        BookCategory category = bookCategoryService.getCategoryById(book.getBookCategory());
+
+        // 查询借阅状态
+        boolean isBorrowed = bookService.isBookBorrowed(bookId);
+
+        // 查询已借出数量
+        int borrowedCount = bookService.getBorrowedCountByBookId(bookId);
+        int totalStock = (book.getTotalStock() != null) ? book.getTotalStock() : 0;
+        int availableCount = Math.max(totalStock - borrowedCount, 0);
+
+        // 格式化出版日期
+        String publishDateStr = "";
+        if (book.getPublishDate() != null) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            publishDateStr = sdf.format(book.getPublishDate());
+        }
+
+        result.put("success", true);
+        result.put("msg", "查询成功");
+        result.put("bookId", book.getBookId());
+        result.put("bookName", nullToEmpty(book.getBookName()));
+        result.put("bookAuthor", nullToEmpty(book.getBookAuthor()));
+        result.put("bookPublish", nullToEmpty(book.getBookPublish()));
+        result.put("isExist", isBorrowed ? "不可借" : "可借");
+        result.put("isbn", nullToEmpty(book.getIsbn()));
+        result.put("categoryName", (category != null) ? nullToEmpty(category.getCategoryName()) : "未分类");
+        result.put("categoryId", (book.getBookCategory() != null) ? book.getBookCategory() : 0);
+        result.put("publishDate", publishDateStr);
+        result.put("bookIntroduction", nullToEmpty(book.getBookIntroduction()));
+        result.put("totalStock", totalStock);
+        result.put("availableCount", availableCount);
+        return result;
+    }
+
+    /**
+     * null转空字符串工具方法
+     */
+    private String nullToEmpty(String str) {
+        return (str != null) ? str : "";
+    }
+
+    /**
+     * 获取推荐图书（同类别下排除当前书籍，最多返回3本）
+     * 优先从 Redis 缓存读取，缓存不可用时 fallback 到 MySQL
+     * 学生端 + 管理员端共用接口
+     *
+     * @param categoryId 当前书籍的类别ID
+     * @param bookId     当前书籍ID（排除用）
+     * @return
+     */
+    @RequestMapping("/getRecommendBooks")
+    @ResponseBody
+    public Map<String, Object> getRecommendBooks(@RequestParam("categoryId") int categoryId,
+                                                  @RequestParam("bookId") int bookId) {
+        Map<String, Object> result = new HashMap<>();
+
+        List<Book> books = bookService.getRecommendBooks(categoryId, bookId, 3);
+        List<Map<String, Object>> list = new ArrayList<>();
+
+        for (Book b : books) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("bookId", b.getBookId());
+            item.put("bookName", nullToEmpty(b.getBookName()));
+            item.put("bookAuthor", nullToEmpty(b.getBookAuthor()));
+            item.put("bookPublish", nullToEmpty(b.getBookPublish()));
+            list.add(item);
+        }
+
+        result.put("success", true);
+        result.put("data", list);
+        result.put("count", list.size());
+        return result;
+    }
+
+    /**
+     * 管理员手动刷新推荐缓存
+     * 全量查询 MySQL → 按分类分组 → 写入 Redis SET → 清理旧数据
+     *
+     * @return 刷新结果摘要
+     */
+    @RequestMapping("/admin/refreshRecommendCache")
+    @ResponseBody
+    public Map<String, Object> refreshRecommendCache() {
+        return bookService.refreshRecommendCache();
+    }
+
+    /**
      * 根据图书id删除图书
      *
      * @param bookId
@@ -200,7 +368,7 @@ public class BookController {
     }
 
     /**
-     * Excel 批量导入图书
+     * Excel 批量导入图书（含新增字段：ISBN/出版日期/总库存 + 批量校验）
      *
      * @param file 上传的 Excel 文件
      * @return 导入结果 JSON
@@ -215,7 +383,6 @@ public class BookController {
             return result;
         }
 
-        // 检查文件类型
         String fileName = file.getOriginalFilename();
         if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
             result.put("success", false);
@@ -224,18 +391,82 @@ public class BookController {
         }
 
         try {
-            List<Book> books = ExcelImportUtil.parseBooksFromExcel(file);
-            if (books.isEmpty()) {
+            // 1. 解析 Excel，获取带行号和校验结果的列表
+            List<ExcelImportUtil.ImportBookResult> parseResults = ExcelImportUtil.parseBooksFromExcel(file);
+            if (parseResults.isEmpty()) {
                 result.put("success", false);
                 result.put("msg", "Excel文件中没有有效的图书数据，请检查文件内容");
                 return result;
             }
 
-            int successCount = adminService.batchAddBooks(books);
+            // 2. 分离成功行和失败行
+            List<Book> validBooks = new ArrayList<>();
+            List<String> errors = new ArrayList<>();
+
+            // 用于批内ISBN去重
+            Set<String> batchIsbns = new HashSet<>();
+
+            // 用于批量校验库存
+            for (ExcelImportUtil.ImportBookResult pr : parseResults) {
+                if (!pr.isSuccess()) {
+                    errors.add("第" + pr.getRowNum() + "行: " + pr.getError());
+                    continue;
+                }
+
+                Book book = pr.getBook();
+
+                // 2.1 ISBN 校验
+                String isbn = book.getIsbn();
+                if (isbn != null && !isbn.trim().isEmpty()) {
+                    isbn = isbn.trim();
+                    book.setIsbn(isbn);
+
+                    // 批内重复检查
+                    if (!batchIsbns.add(isbn)) {
+                        errors.add("第" + pr.getRowNum() + "行: ISBN【" + isbn + "】在导入文件中重复");
+                        continue;
+                    }
+
+                    // 数据库已存在检查
+                    List<Book> existBooks = bookService.findByIsbn(isbn);
+                    if (existBooks != null && !existBooks.isEmpty()) {
+                        errors.add("第" + pr.getRowNum() + "行: ISBN【" + isbn + "】在系统中已存在");
+                        continue;
+                    }
+                }
+
+                // 2.2 库存默认值
+                if (book.getTotalStock() == null) {
+                    book.setTotalStock(0);
+                }
+
+                validBooks.add(book);
+            }
+
+            if (validBooks.isEmpty()) {
+                result.put("success", false);
+                result.put("msg", "没有可导入的有效数据（" + String.join("; ", errors) + "）");
+                return result;
+            }
+
+            // 3. 批量插入
+            int successCount = adminService.batchAddBooks(validBooks);
+
+            // 4. 构建详细结果
+            StringBuilder msg = new StringBuilder();
+            msg.append("成功导入 ").append(successCount).append(" 本");
+            if (!errors.isEmpty()) {
+                msg.append("，跳过 ").append(errors.size()).append(" 条");
+            }
             result.put("success", true);
-            result.put("msg", "成功导入 " + successCount + " 本图书，共读取 " + books.size() + " 条数据");
-            result.put("total", books.size());
+            result.put("msg", msg.toString());
+            result.put("total", parseResults.size());
             result.put("imported", successCount);
+            result.put("skipped", errors.size());
+            if (!errors.isEmpty()) {
+                result.put("errors", errors);
+            }
+
         } catch (IllegalArgumentException e) {
             result.put("success", false);
             result.put("msg", e.getMessage());

@@ -4,7 +4,9 @@
       "Bash(java -version)",
       "Bash(mvn -version)",
       "Bash(rm src/main/resources/mapper/*.xml)",
-      "Bash(rm src/main/java/com/zbw/domain/*Example.java)"
+      "Bash(rm src/main/java/com/zbw/domain/*Example.java)",
+      "Read(//c/Program Files/Java/**)",
+      "Read(//d//**)"
     ]
   }
 }

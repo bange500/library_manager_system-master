@@ -47,13 +47,13 @@
     </div>
 
     <div class="layui-body layui-container"
-         style="margin : 10px auto; padding:10px 16px ;border: 200px; width: 480px; height: 580px; background-color: #f2f2f2">
+         style="margin : 10px auto; padding:10px 16px ;border: 200px; width: 520px; height: auto; min-height: 580px; background-color: #f2f2f2">
 
         <hr class="layui-bg-blue">
         <h2 style="text-align:center">添加书籍</h2>
         <hr class="layui-bg-blue">
 
-        <div style="width: 420px; padding: 20px; margin: auto auto; background-color: #f2f2f2">
+        <div style="width: 460px; padding: 20px; margin: auto auto; background-color: #f2f2f2">
             <form class="layui-form" id="addBookForm">
 
                 <div class="layui-form-item">
@@ -82,6 +82,15 @@
                     </div>
                 </div>
 
+                <!-- ===== 新增：ISBN ===== -->
+                <div class="layui-form-item">
+                    <label class="layui-form-label">I S B N</label>
+                    <div class="layui-input-inline">
+                        <input id="isbn" lay-verify="required|isbn" type="text" name="isbn"
+                               placeholder="请输入ISBN编号" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
                 <div class="layui-form-item">
                     <label class="layui-form-label">类 别</label>
                     <div class="layui-input-inline">
@@ -96,6 +105,25 @@
                         <input id="bookPrice" lay-verify="number" type="text" name="bookPrice" placeholder="￥"
                                autocomplete="off" class="layui-input">
                     </div>
+                </div>
+
+                <!-- ===== 新增：出版日期（日期选择器） ===== -->
+                <div class="layui-form-item">
+                    <label class="layui-form-label">出版日期</label>
+                    <div class="layui-input-inline">
+                        <input id="publishDate" lay-verify="date" type="text" name="publishDateStr"
+                               placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+                <!-- ===== 新增：总库存 ===== -->
+                <div class="layui-form-item">
+                    <label class="layui-form-label">总库存</label>
+                    <div class="layui-input-inline">
+                        <input id="totalStock" lay-verify="required|stock" type="number" name="totalStock"
+                               placeholder="请输入库存数量" autocomplete="off" class="layui-input" min="0">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">新书默认可借=总库存（借出后自动扣减）</div>
                 </div>
 
                 <div class="layui-form-item layui-form-text">

@@ -98,9 +98,10 @@ layui.use(['upload', 'element', 'layer'], function () {
     // 下载模板
     $('#downloadTemplate').on('click', function () {
         // 使用 Blob 在浏览器端生成 Excel 模板（CSV 格式，Excel 可打开）
-        var csvContent = '﻿书名,作者,出版社,类别ID,价格,简介\n';
-        csvContent += 'Java编程思想,Bruce Eckel,机械工业出版社,1,79.00,Java经典入门书籍\n';
-        csvContent += '深入理解Java虚拟机,周志明,机械工业出版社,1,89.00,深入JVM原理';
+        // 列顺序：书名,作者,出版社,类别ID,价格,ISBN,出版日期,入库数量,简介
+        var csvContent = '﻿书名,作者,出版社,类别ID,价格,ISBN,出版日期,入库数量,简介\n';
+        csvContent += 'Java编程思想,Bruce Eckel,机械工业出版社,1,79.00,978-7-111-00001,2020-01-15,10,Java经典入门书籍\n';
+        csvContent += '深入理解Java虚拟机,周志明,机械工业出版社,1,89.00,978-7-111-00002,2019-12-01,5,深入JVM原理';
 
         var blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
         var link = document.createElement('a');

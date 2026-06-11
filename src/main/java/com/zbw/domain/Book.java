@@ -3,11 +3,15 @@ package com.zbw.domain;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.Date;
 
 @Data
 @TableName("book")
@@ -30,7 +34,22 @@ public class Book {
     @DecimalMin(value = "0.0", message = "价格不能为负数")
     private Double bookPrice;
 
-    @Size(max = 500, message = "简介不能超过500个字符")
+    @Size(max = 2000, message = "简介不能超过2000个字符")
     private String bookIntroduction;
+
+    @NotBlank(message = "ISBN不能为空")
+    @Size(max = 20, message = "ISBN不能超过20个字符")
+    private String isbn;
+
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private Date publishDate;
+
+    private Integer totalStock;
+
+    /**
+     * 前端表单接收出版日期字符串，非数据库字段
+     */
+    @TableField(exist = false)
+    private String publishDateStr;
 
 }

@@ -32,4 +32,9 @@ public class BookCategoryServiceImpl implements IBookCategoryService {
     public int deleteBookCategoryById(int bookCategoryId) {
         return bookCategoryMapper.deleteById(bookCategoryId);
     }
+
+    @Override
+    public BookCategory getCategoryById(Integer categoryId) {
+        return bookCategoryMapper.selectById(categoryId);
+    }
 }

@@ -88,6 +88,7 @@
                 <table class="layui-table" lay-size="sm">
                     <thead>
                     <tr>
+                        <th>操作</th>
                         <th>编号</th>
                         <th>书名</th>
                         <th>作者</th>
@@ -98,6 +99,11 @@
 
                     <!-- 分页结果（类别搜索 / 关键字搜索） -->
                     <tr th:each="book:${page != null ? page.getList() : null}">
+                        <td>
+                            <button class="layui-btn layui-btn-xs layui-btn-normal"
+                                    th:attr="data-bookid=${book.getBookId()}"
+                                    onclick="showBookDetail(this)">更多内容</button>
+                        </td>
                         <td><label th:text="${book.getBookId()}"></label></td>
                         <td><label th:text="${book.getBookName()}"></label></td>
                         <td><label th:text="${book.getBookAuthor()}"></label></td>
@@ -107,6 +113,11 @@
 
                     <!-- 非分页结果（旧版关键字搜索兼容） -->
                     <tr th:each="book:${bookList}">
+                        <td>
+                            <button class="layui-btn layui-btn-xs layui-btn-normal"
+                                    th:attr="data-bookid=${book.getBookId()}"
+                                    onclick="showBookDetail(this)">更多内容</button>
+                        </td>
                         <td><label th:text="${book.getBookId()}"></label></td>
                         <td><label th:text="${book.getBookName()}"></label></td>
                         <td><label th:text="${book.getBookAuthor()}"></label></td>
@@ -116,12 +127,12 @@
 
                     <!-- 空结果提示 -->
                     <tr th:if="${(page == null || page.getList() == null || page.getList().isEmpty()) && (bookList == null || bookList.isEmpty())}">
-                        <td colspan="5" style="text-align:center;color:#999;">请选择查询方式并输入条件</td>
+                        <td colspan="6" style="text-align:center;color:#999;">请选择查询方式并输入条件</td>
                     </tr>
 
                     <!-- 分页导航 -->
                     <tr th:if="${page != null && page.getList() != null && !page.getList().isEmpty()}">
-                        <td colspan="5">
+                        <td colspan="6">
                             <div style="margin: auto; width: 200px;">
 
                                 <th:block th:if="${searchType == 'keyword'}">
@@ -156,6 +167,101 @@
                         </td>
                     </tr>
                 </table>
+
+                <!-- 书籍详情展示区域（默认隐藏） -->
+                <div id="bookDetailPanel" style="display:none; margin-top:20px; border:1px solid #e2e2e2; border-radius:4px; padding:20px; background:#f9f9f9;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="margin:0; color:#1E9FFF;">&emsp;书籍详情</h3>
+                        <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="closeBookDetail()">关闭</button>
+                    </div>
+                    <hr style="margin:10px 0;">
+
+                    <!-- 基础信息 -->
+                    <fieldset class="layui-elem-field">
+                        <legend>基础信息</legend>
+                        <div class="layui-field-box">
+                            <table class="layui-table" lay-size="sm">
+                                <colgroup>
+                                    <col width="15%"><col width="35%"><col width="15%"><col width="35%">
+                                </colgroup>
+                                <tbody>
+                                <tr>
+                                    <td><b>编号</b></td>
+                                    <td><span id="detail_bookId">-</span></td>
+                                    <td><b>书名</b></td>
+                                    <td><span id="detail_bookName">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><b>作者</b></td>
+                                    <td><span id="detail_bookAuthor">-</span></td>
+                                    <td><b>出版社</b></td>
+                                    <td><span id="detail_bookPublish">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><b>借阅状态</b></td>
+                                    <td><span id="detail_isExist" style="font-weight:bold;">-</span></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </fieldset>
+
+                    <!-- 扩展信息 -->
+                    <fieldset class="layui-elem-field" style="margin-top:15px;">
+                        <legend>扩展信息</legend>
+                        <div class="layui-field-box">
+                            <table class="layui-table" lay-size="sm">
+                                <colgroup>
+                                    <col width="15%"><col width="35%"><col width="15%"><col width="35%">
+                                </colgroup>
+                                <tbody>
+                                <tr>
+                                    <td><b>ISBN</b></td>
+                                    <td><span id="detail_isbn">-</span></td>
+                                    <td><b>书籍分类</b></td>
+                                    <td><span id="detail_categoryName">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><b>出版日期</b></td>
+                                    <td><span id="detail_publishDate">-</span></td>
+                                    <td><b>总库存</b></td>
+                                    <td><span id="detail_totalStock">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><b>可借数量</b></td>
+                                    <td><span id="detail_availableCount" style="color:#5FB878;font-weight:bold;">-</span></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><b>内容简介</b></td>
+                                    <td colspan="3"><span id="detail_bookIntroduction">-</span></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </fieldset>
+
+                    <!-- 无数据兜底 -->
+                    <div id="detail_empty" style="display:none; text-align:center; color:#999; padding:30px;">
+                        <p>暂无更多内容</p>
+                    </div>
+
+                    <!-- 推荐图书模块（默认隐藏，随详情面板一起显示） -->
+                    <div id="recommendPanel" style="margin-top:20px;">
+                        <fieldset class="layui-elem-field">
+                            <legend>&emsp;推荐图书&emsp;<span style="font-size:12px;color:#999;">（同类别）</span></legend>
+                            <div class="layui-field-box">
+                                <div id="recommendList" style="display:flex;gap:15px;flex-wrap:wrap;justify-content:space-between;"></div>
+                                <div id="recommendEmpty" style="display:none;text-align:center;color:#999;padding:20px;">
+                                    <p>暂无推荐图书</p>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
             </div>
         </div>
 
