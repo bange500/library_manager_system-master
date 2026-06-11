@@ -2,12 +2,14 @@ package com.zbw.controller;
 
 import com.zbw.domain.Book;
 import com.zbw.domain.BookCategory;
+import com.zbw.domain.User;
 import com.zbw.domain.Vo.BookVo;
 import com.zbw.service.IAdminService;
 import com.zbw.service.IBookCategoryService;
 import com.zbw.service.IBookService;
 import com.zbw.utils.ExcelImportUtil;
 import com.zbw.utils.page.Page;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +35,8 @@ public class BookController {
     private IBookService bookService;
     @Resource
     private IBookCategoryService bookCategoryService;
+    @Resource
+    private HttpServletRequest request;
 
     /**
      * 管理员&emsp;&emsp;录入新书（含新增字段：ISBN/出版日期/总库存校验）
@@ -291,7 +295,7 @@ public class BookController {
 
     /**
      * 获取推荐图书（同类别下排除当前书籍，最多返回3本）
-     * 优先从 Redis 缓存读取，缓存不可用时 fallback 到 MySQL
+     * 优先从 Redis 缓存随机读取，过滤当前用户正在借阅的书
      * 学生端 + 管理员端共用接口
      *
      * @param categoryId 当前书籍的类别ID
@@ -304,7 +308,11 @@ public class BookController {
                                                   @RequestParam("bookId") int bookId) {
         Map<String, Object> result = new HashMap<>();
 
-        List<Book> books = bookService.getRecommendBooks(categoryId, bookId, 3);
+        // 从 session 获取当前用户（学生端），管理员端无 userId 不过滤
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        Integer userId = (sessionUser != null) ? sessionUser.getUserId() : null;
+
+        List<Book> books = bookService.getRecommendBooks(categoryId, bookId, 3, userId);
         List<Map<String, Object>> list = new ArrayList<>();
 
         for (Book b : books) {

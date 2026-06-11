@@ -399,3 +399,4 @@ function resetRecommendPanel() {
     if ($empty.length) $empty.hide();
     if ($panel.length) $panel.hide();
 }
+

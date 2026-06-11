@@ -30,10 +30,10 @@ layui.use(['form', 'element', 'layer'], function () {
         return true;
     });
 
-    // ========== 刷新推荐缓存按钮 ==========
-    $(document).on('click', '#btnRefreshCache', function () {
+    // ========== 刷新推荐缓存按钮（footer 中） ==========
+    $(document).on('click', '#btnRefreshCacheFooter', function () {
         var $btn = $(this);
-        $btn.prop('disabled', true).text('刷新中...');
+        $btn.prop('disabled', true).html('<i class="layui-icon layui-icon-refresh"></i> 刷新中...');
         layer.load(2);
 
         $.ajax({
@@ -46,7 +46,6 @@ layui.use(['form', 'element', 'layer'], function () {
                 if (res && res.success) {
                     layer.msg('推荐缓存刷新成功！' +
                         '总图书: ' + (res.totalBooks || 0) +
-                        ', 可借: ' + (res.availableBooks || 0) +
                         ', 分类: ' + (res.categoryCount || 0) +
                         ', 耗时: ' + (res.elapsedMs || 0) + 'ms',
                         {icon: 1, time: 3000});
@@ -61,7 +60,7 @@ layui.use(['form', 'element', 'layer'], function () {
                 console.error('[refreshCache] 请求失败:', status, err);
             },
             complete: function () {
-                $btn.prop('disabled', false).html('<i class="layui-icon layui-icon-refresh"></i> 刷新缓存');
+                $btn.prop('disabled', false).html('<i class="layui-icon layui-icon-refresh"></i> 刷新推荐缓存');
             }
         });
     });
@@ -495,3 +494,4 @@ function resetRecommendPanel() {
     if ($empty.length) $empty.hide();
     if ($panel.length) $panel.hide();
 }
+

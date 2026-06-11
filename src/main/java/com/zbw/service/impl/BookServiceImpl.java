@@ -178,11 +178,11 @@ public class BookServiceImpl implements IBookService {
         long startTime = System.currentTimeMillis();
 
         try {
-            // 1. 全量查询所有图书
+            // 1. 全量查询所有图书（不过滤借出，缓存所有书）
             List<Book> allBooks = bookMapper.selectList(null);
             log.info("全量查询图书: {} 本", allBooks.size());
 
-            // 2. 全量查询当前被借出的 bookId 集合
+            // 2. 全量查询当前被借出的 bookId 集合（仅用于统计展示）
             List<BorrowingBooks> borrowingList = borrowingBooksMapper.selectList(null);
             Set<Integer> borrowedBookIds = new HashSet<>();
             for (BorrowingBooks bb : borrowingList) {
@@ -190,23 +190,17 @@ public class BookServiceImpl implements IBookService {
             }
             log.info("当前借出中的图书: {} 本", borrowedBookIds.size());
 
-            // 3. 过滤：只保留未被借出的书，按 bookCategory 分组
+            // 3. 按 bookCategory 分组（所有书都入缓存，借出过滤在查询时按用户处理）
             Map<Integer, Set<String>> categoryMap = new HashMap<>();
-            int availableCount = 0;
             for (Book book : allBooks) {
-                // 跳过已被借出的书
-                if (borrowedBookIds.contains(book.getBookId())) {
-                    continue;
-                }
                 Integer categoryId = book.getBookCategory();
                 if (categoryId == null) {
                     continue;
                 }
                 categoryMap.computeIfAbsent(categoryId, k -> new HashSet<>())
                         .add(String.valueOf(book.getBookId()));
-                availableCount++;
             }
-            log.info("可借图书: {} 本, 分布在 {} 个分类", availableCount, categoryMap.size());
+            log.info("图书分布在 {} 个分类", categoryMap.size());
 
             // 4. 清理旧的推荐缓存 key
             Set<String> oldKeys = stringRedisTemplate.keys(RECOMMEND_KEY_PREFIX + "*");
@@ -227,13 +221,11 @@ public class BookServiceImpl implements IBookService {
             }
 
             long elapsed = System.currentTimeMillis() - startTime;
-            log.info("推荐缓存刷新完成: {} 个分类, {} 本可借书, 耗时 {} ms",
-                    writtenKeys, availableCount, elapsed);
+            log.info("推荐缓存刷新完成: {} 个分类, {} 本图书, 耗时 {} ms",
+                    writtenKeys, allBooks.size(), elapsed);
 
             result.put("success", true);
             result.put("totalBooks", allBooks.size());
-            result.put("borrowedBooks", borrowedBookIds.size());
-            result.put("availableBooks", availableCount);
             result.put("categoryCount", writtenKeys);
             result.put("elapsedMs", elapsed);
 
@@ -247,59 +239,113 @@ public class BookServiceImpl implements IBookService {
     }
 
     @Override
-    public List<Book> getRecommendBooks(int categoryId, int excludeBookId, int limit) {
-        // 优先从 Redis 读取
+    public List<Book> getRecommendBooks(int categoryId, int excludeBookId, int limit, Integer userId) {
+        // 1. 查出当前书的书名，用于按书名排除（同一本书可能有多条记录不同ID）
+        String excludeBookName = null;
+        Book excludeBook = bookMapper.selectById(excludeBookId);
+        if (excludeBook != null) {
+            excludeBookName = excludeBook.getBookName();
+        }
+
+        // 2. 如果传了 userId，先查出该用户正在借阅的 bookId 集合
+        Set<Integer> userBorrowedBookIds = new HashSet<>();
+        if (userId != null) {
+            List<BorrowingBooks> userBorrowing = borrowingBooksMapper.selectList(
+                    new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getUserId, userId));
+            for (BorrowingBooks bb : userBorrowing) {
+                userBorrowedBookIds.add(bb.getBookId());
+            }
+        }
+
+        // 3. 优先从 Redis 读取
         try {
             String key = RECOMMEND_KEY_PREFIX + categoryId;
 
-            // 检查 key 是否存在（冷启动时可能为空）
             Boolean hasKey = stringRedisTemplate.hasKey(key);
             if (Boolean.FALSE.equals(hasKey)) {
                 log.debug("Redis key {} 不存在，fallback 到 MySQL", key);
-                return getRecommendBooksFromMysql(categoryId, excludeBookId, limit);
+                return getRecommendBooksFromMysql(categoryId, excludeBookName, limit, userBorrowedBookIds);
             }
 
-            // 随机取 limit*5 个候选（多取一些，留出过滤余地）
+            // 随机取较多候选
             List<String> candidates = stringRedisTemplate.opsForSet()
-                    .randomMembers(key, Math.min(limit * 5, 50));
+                    .randomMembers(key, Math.min(limit * 10, 100));
 
             if (candidates == null || candidates.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 排除当前书，取前 limit 本
+            // 排除同名书 + 排除该用户正在借的书
             List<Book> result = new ArrayList<>();
+            Set<String> seenNames = new HashSet<>();  // 按书名去重
             for (String idStr : candidates) {
                 if (result.size() >= limit) {
                     break;
                 }
-                if (idStr.equals(String.valueOf(excludeBookId))) {
+                int candidateId;
+                try {
+                    candidateId = Integer.parseInt(idStr);
+                } catch (NumberFormatException e) {
                     continue;
                 }
-                Book book = bookMapper.selectById(Integer.valueOf(idStr));
-                if (book != null) {
-                    result.add(book);
+                // 排除该用户正在借阅的书
+                if (userBorrowedBookIds.contains(candidateId)) {
+                    continue;
                 }
+                Book book = bookMapper.selectById(candidateId);
+                if (book == null) {
+                    continue;
+                }
+                // 排除与当前书同名的书（同一本书的不同记录）
+                if (excludeBookName != null && excludeBookName.equals(book.getBookName())) {
+                    continue;
+                }
+                // 按书名去重，不推荐同名书
+                if (!seenNames.add(book.getBookName())) {
+                    continue;
+                }
+                result.add(book);
             }
 
             return result;
 
         } catch (Exception e) {
             log.warn("Redis 读取推荐失败，fallback 到 MySQL: {}", e.getMessage());
-            return getRecommendBooksFromMysql(categoryId, excludeBookId, limit);
+            return getRecommendBooksFromMysql(categoryId, excludeBookName, limit, userBorrowedBookIds);
         }
     }
 
     /**
-     * 原 MySQL 直接查询推荐（Redis 不可用时的 fallback）
+     * MySQL 直接查询推荐（Redis 不可用时的 fallback）
+     * 按书名过滤，同时过滤用户正在借阅的书
      */
-    private List<Book> getRecommendBooksFromMysql(int categoryId, int excludeBookId, int limit) {
+    private List<Book> getRecommendBooksFromMysql(int categoryId, String excludeBookName, int limit,
+                                                   Set<Integer> userBorrowedBookIds) {
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Book> mpPage =
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, limit);
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, limit * 10);
         mpPage = bookMapper.selectPage(mpPage,
                 new LambdaQueryWrapper<Book>()
-                        .eq(Book::getBookCategory, categoryId)
-                        .ne(Book::getBookId, excludeBookId));
-        return mpPage.getRecords();
+                        .eq(Book::getBookCategory, categoryId));
+
+        List<Book> result = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
+        for (Book book : mpPage.getRecords()) {
+            if (result.size() >= limit) {
+                break;
+            }
+            if (userBorrowedBookIds.contains(book.getBookId())) {
+                continue;
+            }
+            // 排除与当前书同名的书
+            if (excludeBookName != null && excludeBookName.equals(book.getBookName())) {
+                continue;
+            }
+            // 按书名去重
+            if (!seenNames.add(book.getBookName())) {
+                continue;
+            }
+            result.add(book);
+        }
+        return result;
     }
 }

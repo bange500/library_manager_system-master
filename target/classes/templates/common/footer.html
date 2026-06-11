@@ -2,9 +2,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
 <head>
     <footer th:fragment="footer">
-        <div class="layui-footer">
-            <!-- 底部固定区域 -->
-            Variation - library - managerSystem
+        <div class="layui-footer" style="display:flex;align-items:center;justify-content:space-between;">
+            <!-- 左侧 -->
+            <span>Variation - library - managerSystem</span>
+            <!-- 右侧：管理员刷新推荐缓存按钮 -->
+            <button th:if="${session.admin != null}" class="layui-btn layui-btn-xs layui-btn-warm"
+                    id="btnRefreshCacheFooter" style="margin-right:20px;"
+                    title="全量刷新Redis推荐缓存">
+                <i class="layui-icon layui-icon-refresh"></i> 刷新推荐缓存
+            </button>
         </div>
     </footer>
 </head>

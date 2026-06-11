@@ -27,6 +27,7 @@
 | **安全加密**   | Spring Security Crypto (BCrypt)         |
 | **参数校验**   | Spring Boot Validation (Jakarta @Valid) |
 | **数据库驱动** | mysql-connector-j                       |
+| **缓存**       | Redis (Lettuce 客户端)                  |
 | **工具库**     | Lombok、Apache POI (Excel 导入)         |
 | **构建工具**   | Maven                                   |
 | **热部署**     | Spring Boot DevTools                    |
@@ -67,6 +68,7 @@ library_manager_system-master/
 │   │   │   ├── DemoApplication.java          # 项目入口
 │   │   │   ├── config/
 │   │   │   │   ├── MyBatisPlusConfig.java    # MyBatis-Plus 分页配置
+│   │   │   │   ├── RedisConfig.java          # Redis 序列化配置
 │   │   │   │   └── GlobalExceptionHandler.java # 全局异常处理
 │   │   │   ├── controller/                   # 控制层
 │   │   │   ├── domain/                       # 实体类 / VO
@@ -128,6 +130,11 @@ library_manager_system-master/
 - **职责**: 注册 MyBatis-Plus 分页拦截器，支持 MySQL 物理分页
 - **关键 Bean**: `MybatisPlusInterceptor` → `PaginationInnerInterceptor(DbType.MYSQL)`
 
+#### RedisConfig
+
+- **路径**: `com.zbw.config.RedisConfig`
+- **职责**: 配置 `StringRedisTemplate`，key/value 均使用字符串序列化，便于 Redis 数据阅读和调试
+
 #### GlobalExceptionHandler
 
 - **路径**: `com.zbw.config.GlobalExceptionHandler`
@@ -159,6 +166,8 @@ library_manager_system-master/
   - 删除类别前检查关联图书 (`/findBooksByCategoryId`)
   - 检查图书借阅状态 (`/checkBookStatus`)
   - 删除图书 (`/deleteBook`，借阅中则拒绝，需二次确认)
+  - 获取推荐图书 (`/getRecommendBooks`，Redis 缓存 + 同类别随机推荐，排除当前用户借阅中)
+  - 管理员刷新推荐缓存 (`/admin/refreshRecommendCache`，全量同步 Redis)
   - Excel 批量导入图书 (`/importBooksByExcel`)
 
 #### BorrowingController
@@ -226,7 +235,7 @@ library_manager_system-master/
 | 实现类                              | 关键逻辑说明                                                                                             |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session                           |
-| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件            |
+| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件；随机推荐同类别可借图书（Redis缓存 + MySQL fallback） |
 | `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                             |
 | `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                     |
 | `UserServiceImpl`                 | BCrypt 密码验证+自动升级；新增/批量导入时密码自动加密；借书时检查是否已被借阅；还书按 userId+bookId 删除 |
@@ -319,6 +328,8 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 | `/userReturnBook`           | 任意     | UserController      | 用户还书                                 |
 | `/userShowBooksByCategory`  | 任意     | BookController      | 用户端按类别分页查询图书                 |
 | `/userFindBooksByKeyword`   | 任意     | BookController      | 用户端按关键字分页查询图书               |
+| `/getRecommendBooks`        | GET      | BookController      | 获取推荐图书（同类别随机，排除用户借阅中）|
+| `/admin/refreshRecommendCache` | POST  | BookController      | 管理员手动刷新 Redis 推荐缓存            |
 | `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录                   |
 | `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                     |
 
@@ -347,6 +358,8 @@ demo (0.0.1-SNAPSHOT)
 │   └── Apache POI (Excel 读写)
 ├── lombok (1.18.38)
 │   └── 编译时代码生成
+├── spring-boot-starter-data-redis
+│   └── Redis 缓存（Lettuce 客户端）
 ├── spring-boot-devtools (optional)
 │   └── 热部署
 └── spring-boot-starter-test (test)
@@ -406,6 +419,18 @@ spring:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 ```
 
 ---
@@ -416,6 +441,7 @@ spring:
 
 - JDK 17+
 - MySQL 5.7+
+- Redis 6.0+（推荐图书缓存，可选 — 不可用时自动降级到 MySQL）
 - Maven 3.6+
 
 ### 8.2 数据库初始化
@@ -547,9 +573,60 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 
 ---
 
-## 十二、设计亮点与注意事项
+## 十二、推荐图书功能
 
-### 12.1 设计亮点
+### 12.1 架构设计
+
+推荐图书采用 **Redis 缓存 + MySQL 回查** 的混合架构：
+
+```
+[管理员点击刷新]
+  MySQL book 表 ──全量查──→ 按 bookCategory 分组
+        │
+        ▼
+  删旧 Key + 批量 SADD
+  Redis SET: recommend:category:{categoryId}
+  (每分类一个 SET，存该分类所有 bookId)
+
+[用户请求推荐 /getRecommendBooks?categoryId=X&bookId=Y]
+        │
+        ▼
+  session 取当前用户 userId
+        │
+        ├──→ SRANDMEMBER recommend:category:X (随机取候选)
+        ├──→ 排除 bookId=Y（当前查看的书）
+        ├──→ 排除该用户正在借阅的 bookId
+        └──→ 回查 MySQL 取完整 Book 信息（最多3本）
+  Redis 不可用时 → fallback 到 MySQL 直接查询
+```
+
+### 12.2 Redis 数据结构
+
+| Key                              | 类型 | 说明                       |
+| -------------------------------- | ---- | -------------------------- |
+| `recommend:category:{categoryId}` | SET  | 该分类下所有 bookId 的集合 |
+
+### 12.3 核心方法
+
+| 方法                         | 说明                                                        |
+| ---------------------------- | ----------------------------------------------------------- |
+| `refreshRecommendCache()`    | 全量查询 MySQL → 按分类分组 → 写入 Redis SET → 清理旧数据  |
+| `getRecommendBooks(...)`     | 从 Redis SET 随机取候选 → 排除当前书+用户借阅中 → 返回详情  |
+| `getRecommendBooksFromMysql(…​)` | Redis 不可用时的 MySQL fallback                         |
+
+### 12.4 特性
+
+- **随机推荐**：每次请求通过 `SRANDMEMBER` 随机取候选，同一用户多次刷新看到不同推荐
+- **用户感知过滤**：自动排除当前登录用户正在借阅的书，管理员端不感知
+- **同类别推荐**：只推荐与当前图书相同分类的书
+- **管理员手动刷新**：footer 底部栏提供"刷新推荐缓存"按钮（仅管理员可见），点一次做一次全量同步
+- **Redis 不可用降级**：Redis 异常时自动 fallback 到 MySQL 直接查询，不影响功能可用性
+
+---
+
+## 十三、设计亮点与注意事项
+
+### 13.1 设计亮点
 
 1. **BCrypt 密码加密**：密码密文存储，支持旧明文平滑升级，登录时自动迁移。
 2. **后端参数校验**：实体类 Jakarta Validation + `@Valid` + 全局异常处理，不依赖前端校验。
@@ -560,8 +637,9 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 7. **VO 视图对象**：`BookVo`、`BorrowingBooksVo` 将实体与展示逻辑分离。
 8. **Excel 批量导入**：基于 Apache POI 封装通用工具，支持图书和用户批量导入。
 9. **动态登录表单**：角色切换时实时变更输入框 name 属性，学生用ID、管理员用用户名。
+10. **Redis 推荐缓存**：推荐图书采用 Redis SET 按分类缓存，`SRANDMEMBER` 随机取候选；排除当前用户借阅中的书；Redis 不可用时自动降级到 MySQL；管理员手动触发全量刷新。
 
-### 12.2 注意事项
+### 13.2 注意事项
 
 1. **数据库迁移**：从旧版升级需执行 `migrate-password-bcrypt.sql` 扩宽密码列。
 2. **Session 认证**：项目使用传统 Session 方式，未引入 Spring Security 完整框架。
