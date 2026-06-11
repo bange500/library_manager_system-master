@@ -13,7 +13,6 @@ C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\d
 C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\domain\Department.java
 C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\service\impl\AdminServiceImpl.java
 C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\mapper\BorrowingBooksMapper.java
-C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\config\RedisConfig.java
 C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\mapper\DepartmentMapper.java
 C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\config\GlobalExceptionHandler.java
 C:\Users\刘宗朋\Desktop\library_manager_system-master\src\main\java\com\zbw\domain\Vo\BorrowingBooksVo.java

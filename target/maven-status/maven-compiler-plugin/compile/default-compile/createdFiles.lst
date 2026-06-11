@@ -20,6 +20,7 @@ com\zbw\utils\page\Page.class
 com\zbw\config\GlobalExceptionHandler.class
 com\zbw\domain\Department.class
 com\zbw\config\MyBatisPlusConfig.class
+com\zbw\utils\ExcelImportUtil$ImportBookResult.class
 com\zbw\service\IBookService.class
 com\zbw\controller\UserController.class
 com\zbw\controller\BorrowingController.class

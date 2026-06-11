@@ -294,13 +294,8 @@ public class BookController {
     }
 
     /**
-     * 获取推荐图书（同类别下排除当前书籍，最多返回3本）
-     * 优先从 Redis 缓存随机读取，过滤当前用户正在借阅的书
+     * 获取推荐图书（同类别随机，排除同名书 + 当前用户借阅中）
      * 学生端 + 管理员端共用接口
-     *
-     * @param categoryId 当前书籍的类别ID
-     * @param bookId     当前书籍ID（排除用）
-     * @return
      */
     @RequestMapping("/getRecommendBooks")
     @ResponseBody
@@ -308,7 +303,6 @@ public class BookController {
                                                   @RequestParam("bookId") int bookId) {
         Map<String, Object> result = new HashMap<>();
 
-        // 从 session 获取当前用户（学生端），管理员端无 userId 不过滤
         User sessionUser = (User) request.getSession().getAttribute("user");
         Integer userId = (sessionUser != null) ? sessionUser.getUserId() : null;
 
@@ -328,18 +322,6 @@ public class BookController {
         result.put("data", list);
         result.put("count", list.size());
         return result;
-    }
-
-    /**
-     * 管理员手动刷新推荐缓存
-     * 全量查询 MySQL → 按分类分组 → 写入 Redis SET → 清理旧数据
-     *
-     * @return 刷新结果摘要
-     */
-    @RequestMapping("/admin/refreshRecommendCache")
-    @ResponseBody
-    public Map<String, Object> refreshRecommendCache() {
-        return bookService.refreshRecommendCache();
     }
 
     /**

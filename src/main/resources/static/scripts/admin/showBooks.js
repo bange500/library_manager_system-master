@@ -30,41 +30,6 @@ layui.use(['form', 'element', 'layer'], function () {
         return true;
     });
 
-    // ========== 刷新推荐缓存按钮（footer 中） ==========
-    $(document).on('click', '#btnRefreshCacheFooter', function () {
-        var $btn = $(this);
-        $btn.prop('disabled', true).html('<i class="layui-icon layui-icon-refresh"></i> 刷新中...');
-        layer.load(2);
-
-        $.ajax({
-            type: 'POST',
-            url: '/admin/refreshRecommendCache',
-            dataType: 'json',
-            timeout: 30000,
-            success: function (res) {
-                layer.closeAll('loading');
-                if (res && res.success) {
-                    layer.msg('推荐缓存刷新成功！' +
-                        '总图书: ' + (res.totalBooks || 0) +
-                        ', 分类: ' + (res.categoryCount || 0) +
-                        ', 耗时: ' + (res.elapsedMs || 0) + 'ms',
-                        {icon: 1, time: 3000});
-                } else {
-                    var errMsg = (res && res.msg) ? res.msg : '刷新失败';
-                    layer.msg(errMsg, {icon: 2, time: 3000});
-                }
-            },
-            error: function (xhr, status, err) {
-                layer.closeAll('loading');
-                layer.msg('刷新失败，服务器异常（状态码: ' + xhr.status + '）', {icon: 2});
-                console.error('[refreshCache] 请求失败:', status, err);
-            },
-            complete: function () {
-                $btn.prop('disabled', false).html('<i class="layui-icon layui-icon-refresh"></i> 刷新推荐缓存');
-            }
-        });
-    });
-
     // ========== 删除图书按钮 —— 二次确认流程 ==========
     // 使用事件委托绑定，兼容 AJAX 后动态加载的按钮
     $(document).on('click', '.btn_deleteBook', function () {

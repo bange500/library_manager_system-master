@@ -27,7 +27,6 @@
 | **安全加密**   | Spring Security Crypto (BCrypt)         |
 | **参数校验**   | Spring Boot Validation (Jakarta @Valid) |
 | **数据库驱动** | mysql-connector-j                       |
-| **缓存**       | Redis (Lettuce 客户端)                  |
 | **工具库**     | Lombok、Apache POI (Excel 导入)         |
 | **构建工具**   | Maven                                   |
 | **热部署**     | Spring Boot DevTools                    |
@@ -68,7 +67,6 @@ library_manager_system-master/
 │   │   │   ├── DemoApplication.java          # 项目入口
 │   │   │   ├── config/
 │   │   │   │   ├── MyBatisPlusConfig.java    # MyBatis-Plus 分页配置
-│   │   │   │   ├── RedisConfig.java          # Redis 序列化配置
 │   │   │   │   └── GlobalExceptionHandler.java # 全局异常处理
 │   │   │   ├── controller/                   # 控制层
 │   │   │   ├── domain/                       # 实体类 / VO
@@ -79,7 +77,8 @@ library_manager_system-master/
 │   │       ├── application.yml               # 主配置文件
 │   │       ├── db/
 │   │       │   ├── library-manager-system.sql # 数据库初始化脚本
-│   │       │   └── migrate-password-bcrypt.sql # BCrypt 密码迁移脚本
+│   │       │   ├── migrate-password-bcrypt.sql # BCrypt 密码迁移脚本
+│   │       │   └── seed-novel-books.sql       # 小说类100条测试数据
 │   │       ├── static/                       # 静态资源 (CSS/JS/图片)
 │   │       └── templates/                    # Thymeleaf 页面模板
 │   └── test/                                 # 单元测试
@@ -93,16 +92,17 @@ library_manager_system-master/
 
 ### 3.1 表结构概览
 
-| 表名               | 说明       | 主要字段                                                                                    |
-| ------------------ | ---------- | ------------------------------------------------------------------------------------------- |
-| `admin`          | 管理员表   | admin_id, admin_name, admin_pwd(200), admin_email                                           |
-| `user`           | 用户表     | user_id, user_name, user_pwd(200), user_email                                               |
-| `book`           | 图书表     | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction |
-| `book_category`  | 图书类别表 | category_id, category_name                                                                  |
-| `borrowingbooks` | 借阅记录表 | id, user_id, book_id, date                                                                  |
-| `dept`           | 部门表     | dept_id, dept_name                                                                          |
+| 表名               | 说明       | 主要字段                                                                                                                     |
+| ------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `admin`          | 管理员表   | admin_id, admin_name, admin_pwd(200), admin_email                                                                            |
+| `user`           | 用户表     | user_id, user_name, user_pwd(200), user_email                                                                                |
+| `book`           | 图书表     | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction, isbn, publish_date, total_stock |
+| `book_category`  | 图书类别表 | category_id, category_name                                                                                                   |
+| `borrowingbooks` | 借阅记录表 | id, user_id, book_id, date                                                                                                   |
+| `dept`           | 部门表     | dept_id, dept_name                                                                                                           |
 
 > **注意**：`user_pwd` 和 `admin_pwd` 列已扩展为 `varchar(200)` 以存储 BCrypt 哈希值（固定 60 字符）。
+> `book` 表通过 `migrate-password-bcrypt.sql` 追加了 `isbn`、`publish_date`、`total_stock` 三个字段，`book_introduction` 改为 TEXT。
 
 ### 3.2 表关系
 
@@ -129,11 +129,6 @@ library_manager_system-master/
 - **路径**: `com.zbw.config.MyBatisPlusConfig`
 - **职责**: 注册 MyBatis-Plus 分页拦截器，支持 MySQL 物理分页
 - **关键 Bean**: `MybatisPlusInterceptor` → `PaginationInnerInterceptor(DbType.MYSQL)`
-
-#### RedisConfig
-
-- **路径**: `com.zbw.config.RedisConfig`
-- **职责**: 配置 `StringRedisTemplate`，key/value 均使用字符串序列化，便于 Redis 数据阅读和调试
 
 #### GlobalExceptionHandler
 
@@ -166,8 +161,7 @@ library_manager_system-master/
   - 删除类别前检查关联图书 (`/findBooksByCategoryId`)
   - 检查图书借阅状态 (`/checkBookStatus`)
   - 删除图书 (`/deleteBook`，借阅中则拒绝，需二次确认)
-  - 获取推荐图书 (`/getRecommendBooks`，Redis 缓存 + 同类别随机推荐，排除当前用户借阅中)
-  - 管理员刷新推荐缓存 (`/admin/refreshRecommendCache`，全量同步 Redis)
+  - 获取推荐图书 (`/getRecommendBooks`，同类别随机推荐，排除当前用户借阅中)
   - Excel 批量导入图书 (`/importBooksByExcel`)
 
 #### BorrowingController
@@ -232,13 +226,13 @@ library_manager_system-master/
 
 #### 实现类关键逻辑
 
-| 实现类                              | 关键逻辑说明                                                                                             |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session                           |
-| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件；随机推荐同类别可借图书（Redis缓存 + MySQL fallback） |
-| `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                             |
-| `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                     |
-| `UserServiceImpl`                 | BCrypt 密码验证+自动升级；新增/批量导入时密码自动加密；借书时检查是否已被借阅；还书按 userId+bookId 删除 |
+| 实现类                              | 关键逻辑说明                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session                                                                    |
+| `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件；随机推荐同类别可借图书（内存随机打乱，按书名去重） |
+| `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                                                                      |
+| `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                                                              |
+| `UserServiceImpl`                 | BCrypt 密码验证+自动升级；新增/批量导入时密码自动加密；借书时检查是否已被借阅；还书按 userId+bookId 删除                                          |
 
 ### 4.6 工具类模块 (`utils`)
 
@@ -313,25 +307,24 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 
 ### 5.3 核心 Controller 接口
 
-| 接口路径                      | 请求方式 | 所属 Controller     | 功能                                     |
-| ----------------------------- | -------- | ------------------- | ---------------------------------------- |
-| `/adminLogin`               | POST     | AdminController     | 管理员登录（用户名），Session 存储 admin |
-| `/userLogin`                | POST     | UserController      | 用户登录（用户ID），Session 存储 user    |
-| `/addBook`                  | 任意     | BookController      | 录入新书，带 `@Valid` 校验             |
-| `/deleteBook`               | 任意     | BookController      | 删除图书（借阅中则拒绝，需二次确认）     |
-| `/checkBookStatus`          | 任意     | BookController      | 检查图书借阅状态                         |
-| `/findBooksByCategoryId`    | 任意     | BookController      | 查询类别下所有图书（删除类别前检查用）   |
-| `/importBooksByExcel`       | 任意     | BookController      | Excel 批量导入图书                       |
-| `/importUsersByExcel`       | 任意     | UserController      | Excel 批量导入用户                       |
-| `/addUser`                  | 任意     | UserController      | 添加用户，带 `@Valid` 校验             |
-| `/userBorrowingBook`        | 任意     | UserController      | 用户借书                                 |
-| `/userReturnBook`           | 任意     | UserController      | 用户还书                                 |
-| `/userShowBooksByCategory`  | 任意     | BookController      | 用户端按类别分页查询图书                 |
-| `/userFindBooksByKeyword`   | 任意     | BookController      | 用户端按关键字分页查询图书               |
-| `/getRecommendBooks`        | GET      | BookController      | 获取推荐图书（同类别随机，排除用户借阅中）|
-| `/admin/refreshRecommendCache` | POST  | BookController      | 管理员手动刷新 Redis 推荐缓存            |
-| `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录                   |
-| `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                     |
+| 接口路径                      | 请求方式 | 所属 Controller     | 功能                                       |
+| ----------------------------- | -------- | ------------------- | ------------------------------------------ |
+| `/adminLogin`               | POST     | AdminController     | 管理员登录（用户名），Session 存储 admin   |
+| `/userLogin`                | POST     | UserController      | 用户登录（用户ID），Session 存储 user      |
+| `/addBook`                  | 任意     | BookController      | 录入新书，带 `@Valid` 校验               |
+| `/deleteBook`               | 任意     | BookController      | 删除图书（借阅中则拒绝，需二次确认）       |
+| `/checkBookStatus`          | 任意     | BookController      | 检查图书借阅状态                           |
+| `/findBooksByCategoryId`    | 任意     | BookController      | 查询类别下所有图书（删除类别前检查用）     |
+| `/importBooksByExcel`       | 任意     | BookController      | Excel 批量导入图书                         |
+| `/importUsersByExcel`       | 任意     | UserController      | Excel 批量导入用户                         |
+| `/addUser`                  | 任意     | UserController      | 添加用户，带 `@Valid` 校验               |
+| `/userBorrowingBook`        | 任意     | UserController      | 用户借书                                   |
+| `/userReturnBook`           | 任意     | UserController      | 用户还书                                   |
+| `/userShowBooksByCategory`  | 任意     | BookController      | 用户端按类别分页查询图书                   |
+| `/userFindBooksByKeyword`   | 任意     | BookController      | 用户端按关键字分页查询图书                 |
+| `/getRecommendBooks`        | GET      | BookController      | 获取推荐图书（同类别随机，排除用户借阅中） |
+| `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录                     |
+| `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                       |
 
 ---
 
@@ -358,8 +351,6 @@ demo (0.0.1-SNAPSHOT)
 │   └── Apache POI (Excel 读写)
 ├── lombok (1.18.38)
 │   └── 编译时代码生成
-├── spring-boot-starter-data-redis
-│   └── Redis 缓存（Lettuce 客户端）
 ├── spring-boot-devtools (optional)
 │   └── 热部署
 └── spring-boot-starter-test (test)
@@ -419,18 +410,6 @@ spring:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 0
-      timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
 ```
 
 ---
@@ -441,24 +420,23 @@ spring:
 
 - JDK 17+
 - MySQL 5.7+
-- Redis 6.0+（推荐图书缓存，可选 — 不可用时自动降级到 MySQL）
 - Maven 3.6+
 
 ### 8.2 数据库初始化
 
 ```sql
-CREATE DATABASE IF NOT EXISTS library-manager-system
+CREATE DATABASE IF NOT EXISTS `library-manager-system`
 DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
-**全新安装**：导入 `src/main/resources/db/library-manager-system.sql`
+**全新安装**：依次导入：
 
-**已有数据库升级**（支持 BCrypt 密码加密）：执行 `src/main/resources/db/migrate-password-bcrypt.sql`
+1. `src/main/resources/db/library-manager-system.sql` — 建表 + 初始数据
+2. `src/main/resources/db/migrate-password-bcrypt.sql` — 追加 ISBN/出版日期/库存字段
 
-```sql
-ALTER TABLE `user` MODIFY COLUMN `user_pwd` varchar(200) DEFAULT NULL;
-ALTER TABLE `admin` MODIFY COLUMN `admin_pwd` varchar(200) DEFAULT NULL;
-```
+**已有数据库升级**：执行 `src/main/resources/db/migrate-password-bcrypt.sql`（含密码列扩宽 + book 表新字段）
+
+**测试数据**（可选）：执行 `src/main/resources/db/seed-novel-books.sql` 导入小说类 100 条测试图书
 
 ### 8.3 修改数据库配置
 
@@ -577,50 +555,28 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 
 ### 12.1 架构设计
 
-推荐图书采用 **Redis 缓存 + MySQL 回查** 的混合架构：
+纯 MySQL 实现，查询同类别全部图书后在内存中随机打乱：
 
 ```
-[管理员点击刷新]
-  MySQL book 表 ──全量查──→ 按 bookCategory 分组
-        │
-        ▼
-  删旧 Key + 批量 SADD
-  Redis SET: recommend:category:{categoryId}
-  (每分类一个 SET，存该分类所有 bookId)
-
 [用户请求推荐 /getRecommendBooks?categoryId=X&bookId=Y]
         │
         ▼
   session 取当前用户 userId
         │
-        ├──→ SRANDMEMBER recommend:category:X (随机取候选)
-        ├──→ 排除 bookId=Y（当前查看的书）
+        ├──→ selectList 查该分类全部图书
+        ├──→ Collections.shuffle() 随机打乱
+        ├──→ 排除与当前书同名的书
         ├──→ 排除该用户正在借阅的 bookId
-        └──→ 回查 MySQL 取完整 Book 信息（最多3本）
-  Redis 不可用时 → fallback 到 MySQL 直接查询
+        ├──→ 按书名去重
+        └──→ 返回前 3 本
 ```
 
-### 12.2 Redis 数据结构
+### 12.2 特性
 
-| Key                              | 类型 | 说明                       |
-| -------------------------------- | ---- | -------------------------- |
-| `recommend:category:{categoryId}` | SET  | 该分类下所有 bookId 的集合 |
-
-### 12.3 核心方法
-
-| 方法                         | 说明                                                        |
-| ---------------------------- | ----------------------------------------------------------- |
-| `refreshRecommendCache()`    | 全量查询 MySQL → 按分类分组 → 写入 Redis SET → 清理旧数据  |
-| `getRecommendBooks(...)`     | 从 Redis SET 随机取候选 → 排除当前书+用户借阅中 → 返回详情  |
-| `getRecommendBooksFromMysql(…​)` | Redis 不可用时的 MySQL fallback                         |
-
-### 12.4 特性
-
-- **随机推荐**：每次请求通过 `SRANDMEMBER` 随机取候选，同一用户多次刷新看到不同推荐
+- **随机推荐**：调用时内存随机打乱，每次返回不同结果
+- **按书名过滤**：排除与当前书同名的书，按书名去重避免重复
 - **用户感知过滤**：自动排除当前登录用户正在借阅的书，管理员端不感知
-- **同类别推荐**：只推荐与当前图书相同分类的书
-- **管理员手动刷新**：footer 底部栏提供"刷新推荐缓存"按钮（仅管理员可见），点一次做一次全量同步
-- **Redis 不可用降级**：Redis 异常时自动 fallback 到 MySQL 直接查询，不影响功能可用性
+- **简单可靠**：零外部依赖，无需 Redis，即改即用
 
 ---
 
@@ -637,7 +593,7 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 7. **VO 视图对象**：`BookVo`、`BorrowingBooksVo` 将实体与展示逻辑分离。
 8. **Excel 批量导入**：基于 Apache POI 封装通用工具，支持图书和用户批量导入。
 9. **动态登录表单**：角色切换时实时变更输入框 name 属性，学生用ID、管理员用用户名。
-10. **Redis 推荐缓存**：推荐图书采用 Redis SET 按分类缓存，`SRANDMEMBER` 随机取候选；排除当前用户借阅中的书；Redis 不可用时自动降级到 MySQL；管理员手动触发全量刷新。
+10. **随机推荐**：同类别图书在内存中随机打乱后返回，按书名去重，排除当前书和用户借阅中的书，无需额外缓存依赖。
 
 ### 13.2 注意事项
 
