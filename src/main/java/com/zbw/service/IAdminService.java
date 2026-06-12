@@ -1,11 +1,13 @@
 package com.zbw.service;
 
+import java.util.List;
+import java.util.Map;
+
 import com.zbw.domain.Admin;
 import com.zbw.domain.Book;
 import com.zbw.domain.BookCategory;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
 
 public interface IAdminService {
 
@@ -32,4 +34,7 @@ public interface IAdminService {
 
     // 更新管理员信息
     boolean updateAdmin(Admin admin, HttpServletRequest request);
+
+    // 更新管理员密码
+    Map<String, Object> updateAdminPwd(String oldPwd, String newPwd, HttpServletRequest request);
 }

@@ -295,4 +295,22 @@ public class UserController {
         }
         return result;
     }
+
+    @RequestMapping("/userBasicInfoPage")
+    public String userBasicInfoPage() {
+        return "user/userBasicInfo";
+    }
+
+    @RequestMapping("/userSecuritySettingsPage")
+    public String userSecuritySettingsPage() {
+        return "user/userSecuritySettings";
+    }
+
+    @RequestMapping("/updateUserPwd")
+    @ResponseBody
+    public Map<String, Object> updateUserPwd(@RequestParam("oldPwd") String oldPwd,
+                                              @RequestParam("newPwd") String newPwd,
+                                              HttpServletRequest request) {
+        return userService.updateUserPwd(oldPwd, newPwd, request);
+    }
 }

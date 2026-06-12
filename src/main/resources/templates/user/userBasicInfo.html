@@ -2,9 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>普通用户-图书管理系统</title>
+    <title>普通用户-基本资料</title>
     <link href="/layui/css/layui.css" rel="stylesheet"/>
-
 </head>
 <body class="layui-layout-body">
 
@@ -14,10 +13,9 @@
 
     <div class="layui-side layui-bg-black">
         <div class="layui-side-scroll">
-            <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
             <ul class="layui-nav layui-nav-tree">
 
-                <li class="layui-nav-item ">
+                <li class="layui-nav-item">
                     <a class="" href="javascript:;">借阅管理</a>
                     <dl class="layui-nav-child">
                         <dd><a href="/userBorrowBookRecord">&emsp;&emsp;借书记录</a></dd>
@@ -39,7 +37,7 @@
     <div class="layui-body layui-container">
 
         <hr class="layui-bg-blue">
-        <h3 style="font-size: xx-large; text-align: center"> 个 人 信 息 </h3>
+        <h3 style="font-size: xx-large; text-align: center">基 本 资 料</h3>
         <hr class="layui-bg-blue">
 
         <div class="layui-row">
@@ -47,32 +45,28 @@
                 <table class="layui-table">
                     <thead>
                     <tr>
-                        <th>用户id</th>
+                        <th>用户ID</th>
                         <th>用户姓名</th>
                         <th>用户邮箱</th>
-                        <th>用户密码</th>
                     </tr>
                     </thead>
-
                     <tr>
                         <td><b th:text="${session.user.getUserId()}"></b></td>
                         <td><b th:text="${session.user.getUserName()}"></b></td>
                         <td><b th:text="${session.user.getUserEmail()}"></b></td>
-                        <td><b th:text="${session.user.getUserPwd()}"></b></td>
                     </tr>
                 </table>
             </div>
         </div>
 
         <div class="layui-row">
-            <button id="modify-user" class="layui-btn" style="display: block; margin: 10px auto;">修改信息</button>
+            <button id="modify-info" class="layui-btn" style="display: block; margin: 10px auto;">修改资料</button>
         </div>
 
-        <div id="window" title="修改信息" style="margin: 5%; display: none">
+        <div id="window" title="修改资料" style="margin: 5%; display: none">
             <form id="updateUserForm" class="layui-form">
                 <div class="layui-form-item">
-                    <label class="layui-form-label">名字</label>
-
+                    <label class="layui-form-label">姓名</label>
                     <div class="layui-input-block">
                         <input type="text" name="userName" th:value="${session.user.getUserName()}" id="name"
                                class="layui-input">
@@ -81,34 +75,21 @@
 
                 <div class="layui-form-item">
                     <label class="layui-form-label">邮箱</label>
-
                     <div class="layui-input-block">
-                        <input type="text" name="UserEmail" th:value="${session.user.getUserEmail()}" id="email"
+                        <input type="text" name="userEmail" th:value="${session.user.getUserEmail()}" id="email"
                                class="layui-input">
                     </div>
                 </div>
-
-                <div class="layui-form-item">
-                    <label class="layui-form-label">密码</label>
-
-                    <div class="layui-input-block">
-                        <input type="text" name="userPwd" id="password" class="layui-input"
-                               th:value="${session.user.getUserPwd()}">
-                    </div>
-                </div>
-
             </form>
         </div>
     </div>
 
     <div th:insert="~{common/footer :: footer}"></div>
-
 </div>
-
 
 <script src="/scripts/jquery.min.js"></script>
 <script src="/layui/layui.js"></script>
-<script src="/scripts/user/userMessage.js"></script>
+<script src="/scripts/user/userBasicInfo.js"></script>
 
 </body>
 </html>

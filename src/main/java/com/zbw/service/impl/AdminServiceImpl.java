@@ -1,17 +1,23 @@
 package com.zbw.service.impl;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.zbw.domain.*;
+import com.zbw.domain.Admin;
+import com.zbw.domain.Book;
+import com.zbw.domain.BookCategory;
 import com.zbw.mapper.AdminMapper;
 import com.zbw.mapper.BookCategoryMapper;
 import com.zbw.mapper.BookMapper;
 import com.zbw.service.IAdminService;
 import com.zbw.utils.PasswordUtil;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class AdminServiceImpl implements IAdminService {
@@ -111,5 +117,35 @@ public class AdminServiceImpl implements IAdminService {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public Map<String, Object> updateAdminPwd(String oldPwd, String newPwd, HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<>();
+        Admin sessionAdmin = (Admin) request.getSession().getAttribute("admin");
+        Admin admin = adminMapper.selectById(sessionAdmin.getAdminId());
+
+        // 验证原密码
+        if (!PasswordUtil.matches(oldPwd, admin.getAdminPwd())) {
+            result.put("code", 1);
+            result.put("msg", "原密码错误");
+            return result;
+        }
+
+        // 设置新密码
+        admin.setAdminPwd(PasswordUtil.encode(newPwd));
+        int n = adminMapper.updateById(admin);
+
+        if (n > 0) {
+            Admin newAdmin = adminMapper.selectById(admin.getAdminId());
+            request.getSession().setAttribute("admin", newAdmin);
+            result.put("code", 0);
+            result.put("msg", "密码修改成功");
+            return result;
+        }
+
+        result.put("code", 1);
+        result.put("msg", "密码修改失败");
+        return result;
     }
 }

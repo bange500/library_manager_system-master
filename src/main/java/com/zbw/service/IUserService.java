@@ -1,12 +1,14 @@
 package com.zbw.service;
 
+import java.util.List;
+import java.util.Map;
+
 import com.zbw.domain.Department;
 import com.zbw.domain.User;
 import com.zbw.domain.Vo.BorrowingBooksVo;
 import com.zbw.utils.page.Page;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
 
 public interface IUserService {
 
@@ -45,4 +47,7 @@ public interface IUserService {
 
     //根据用户id删除用户
     int deleteUserById(int userId);
+
+    // 更新用户密码
+    Map<String, Object> updateUserPwd(String oldPwd, String newPwd, HttpServletRequest request);
 }

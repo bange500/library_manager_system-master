@@ -117,6 +117,13 @@
         let user_judge = check(username);
 
         if (user_judge) {
+            // 检查是否包含中文字符
+            if (hasChinese(username)) {
+                var labelText = $("#loginLabel").text().replace(":", "");
+                layer.alert(labelText + "错误", {icon: 5});
+                return false;
+            }
+
             let password = $("#password").val();
             let pwd_judge = check(password);
 
@@ -146,6 +153,12 @@
     function check(val) {
         val = val.toString().trim();
         return !(val == '');
+    }
+
+    // 检查是否包含中文字符
+    function hasChinese(str) {
+        var reg = /[\u4e00-\u9fa5]/;
+        return reg.test(str);
     }
 </script>
 </body>

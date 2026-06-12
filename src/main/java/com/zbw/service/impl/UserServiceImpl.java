@@ -1,7 +1,20 @@
 package com.zbw.service.impl;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.zbw.domain.*;
+import com.zbw.domain.Book;
+import com.zbw.domain.BorrowingBooks;
+import com.zbw.domain.Department;
+import com.zbw.domain.User;
 import com.zbw.domain.Vo.BorrowingBooksVo;
 import com.zbw.mapper.BookMapper;
 import com.zbw.mapper.BorrowingBooksMapper;
@@ -10,15 +23,9 @@ import com.zbw.mapper.UserMapper;
 import com.zbw.service.IUserService;
 import com.zbw.utils.PasswordUtil;
 import com.zbw.utils.page.Page;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class UserServiceImpl implements IUserService {
@@ -197,5 +204,35 @@ public class UserServiceImpl implements IUserService {
     @Override
     public int deleteUserById(int userId) {
         return userMapper.deleteById(userId);
+    }
+
+    @Override
+    public Map<String, Object> updateUserPwd(String oldPwd, String newPwd, HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<>();
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        User user = userMapper.selectById(sessionUser.getUserId());
+
+        // 验证原密码
+        if (!PasswordUtil.matches(oldPwd, user.getUserPwd())) {
+            result.put("code", 1);
+            result.put("msg", "原密码错误");
+            return result;
+        }
+
+        // 设置新密码
+        user.setUserPwd(PasswordUtil.encode(newPwd));
+        int n = userMapper.updateById(user);
+
+        if (n > 0) {
+            User newUser = userMapper.selectById(user.getUserId());
+            request.getSession().setAttribute("user", newUser);
+            result.put("code", 0);
+            result.put("msg", "密码修改成功");
+            return result;
+        }
+
+        result.put("code", 1);
+        result.put("msg", "密码修改失败");
+        return result;
     }
 }

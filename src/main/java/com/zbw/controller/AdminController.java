@@ -1,5 +1,14 @@
 package com.zbw.controller;
 
+import java.util.Map;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
 import com.zbw.domain.Admin;
 import com.zbw.domain.BookCategory;
 import com.zbw.domain.User;
@@ -8,15 +17,9 @@ import com.zbw.service.IAdminService;
 import com.zbw.service.IBookCategoryService;
 import com.zbw.service.IUserService;
 import com.zbw.utils.page.Page;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class AdminController {
@@ -113,9 +116,27 @@ public class AdminController {
         return "admin/adminInfo";
     }
 
+    @RequestMapping("/adminBasicInfoPage")
+    public String adminBasicInfo() {
+        return "admin/adminBasicInfo";
+    }
+
+    @RequestMapping("/adminSecuritySettingsPage")
+    public String adminSecuritySettings() {
+        return "admin/adminSecuritySettings";
+    }
+
     @RequestMapping("/updateAdmin")
     @ResponseBody
     public boolean updateAdmin(Admin admin, HttpServletRequest request) {
         return adminService.updateAdmin(admin, request);
+    }
+
+    @RequestMapping("/updateAdminPwd")
+    @ResponseBody
+    public Map<String, Object> updateAdminPwd(@RequestParam("oldPwd") String oldPwd,
+                                              @RequestParam("newPwd") String newPwd,
+                                              HttpServletRequest request) {
+        return adminService.updateAdminPwd(oldPwd, newPwd, request);
     }
 }
