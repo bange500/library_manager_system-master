@@ -1,9 +1,11 @@
 package com.zbw.controller;
 
 
+import com.zbw.domain.Announcement;
 import com.zbw.domain.Department;
 import com.zbw.domain.User;
 import com.zbw.domain.Vo.BorrowingBooksVo;
+import com.zbw.service.IAnnouncementService;
 import com.zbw.service.IBookService;
 import com.zbw.service.IBorrowingBooksRecordService;
 import com.zbw.service.IUserService;
@@ -39,6 +41,9 @@ public class UserController {
     @Resource
     private IBookService bookService;
 
+    @Resource
+    private IAnnouncementService announcementService;
+
     /**
      * 用户登录
      *
@@ -47,14 +52,18 @@ public class UserController {
      */
     @PostMapping("/userLogin")
     public String userLogin(@Param("userId") int userId,
-                            @Param("password") String password, HttpServletRequest request) {
+                            @Param("password") String password,
+                            HttpServletRequest request,
+                            Model model) {
         User user = userService.userLogin(userId, password);
-        
+
         if (null != user) {
             // flag = 0 表示用户名密码校验成功  【用于前端校验】
             request.getSession().setAttribute("flag", 0);
 
             request.getSession().setAttribute("user", user);
+            model.addAttribute("carouselList", announcementService.getCarouselAnnouncements());
+            model.addAttribute("announcementList", announcementService.getNormalAnnouncements());
             return "user/index";
         }
 
@@ -139,7 +148,11 @@ public class UserController {
      * 返回用户首页
      */
     @RequestMapping("/userIndex")
-    public String userIndex() {
+    public String userIndex(Model model) {
+        List<Announcement> carouselList = announcementService.getCarouselAnnouncements();
+        List<Announcement> announcementList = announcementService.getNormalAnnouncements();
+        model.addAttribute("carouselList", carouselList);
+        model.addAttribute("announcementList", announcementList);
         return "user/index";
     }
 
@@ -312,5 +325,18 @@ public class UserController {
                                               @RequestParam("newPwd") String newPwd,
                                               HttpServletRequest request) {
         return userService.updateUserPwd(oldPwd, newPwd, request);
+    }
+
+    /**
+     * 公告/活动详情页
+     */
+    @RequestMapping("/announcementDetail")
+    public String announcementDetail(@RequestParam("id") int id, Model model) {
+        Announcement announcement = announcementService.getById(id);
+        if (announcement == null) {
+            return "redirect:/userIndex";
+        }
+        model.addAttribute("announcement", announcement);
+        return "announcement/detail";
     }
 }

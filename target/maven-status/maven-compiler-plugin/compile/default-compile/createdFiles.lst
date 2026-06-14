@@ -7,16 +7,19 @@ com\zbw\service\IBorrowingBooksRecordService.class
 com\zbw\service\impl\UserServiceImpl.class
 com\zbw\service\impl\BookCategoryServiceImpl.class
 com\zbw\domain\User.class
+com\zbw\service\impl\AnnouncementServiceImpl.class
 com\zbw\mapper\BookCategoryMapper.class
 com\zbw\domain\BorrowingBooks.class
 com\zbw\mapper\AdminMapper.class
 com\zbw\domain\Admin.class
 com\zbw\service\IAdminService.class
+com\zbw\domain\Announcement.class
 com\zbw\utils\PasswordUtil.class
 com\zbw\controller\BookController.class
 com\zbw\controller\AdminController.class
 com\zbw\utils\ExcelImportUtil$1.class
 com\zbw\utils\page\Page.class
+com\zbw\mapper\AnnouncementMapper.class
 com\zbw\config\GlobalExceptionHandler.class
 com\zbw\domain\Department.class
 com\zbw\config\MyBatisPlusConfig.class
@@ -25,6 +28,7 @@ com\zbw\service\IBookService.class
 com\zbw\controller\UserController.class
 com\zbw\controller\BorrowingController.class
 com\zbw\mapper\DepartmentMapper.class
+com\zbw\service\IAnnouncementService.class
 com\zbw\service\impl\AdminServiceImpl.class
 com\zbw\DemoApplication.class
 com\zbw\service\IBookCategoryService.class

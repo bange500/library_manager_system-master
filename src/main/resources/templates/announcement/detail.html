@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${announcement.title} + ' - 图书馆'">公告详情 - 图书馆</title>
+    <link href="/layui/css/layui.css" rel="stylesheet"/>
+    <style>
+        .detail-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .breadcrumb {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .breadcrumb a {
+            color: #5FB878;
+            text-decoration: none;
+        }
+        .breadcrumb span {
+            margin: 0 8px;
+        }
+        .detail-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        .detail-header h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .detail-meta {
+            font-size: 14px;
+            color: #999;
+        }
+        .detail-meta .type-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 10px;
+            color: #fff;
+            vertical-align: middle;
+        }
+        .type-activity { background: #FFB800; }
+        .type-announcement { background: #5FB878; }
+        .detail-cover {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .detail-cover img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 6px;
+        }
+        .detail-content {
+            font-size: 15px;
+            line-height: 1.9;
+            color: #444;
+            padding: 0 10px;
+        }
+        .detail-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+        }
+        .detail-content table th,
+        .detail-content table td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+        }
+        .detail-content table th {
+            background: #f5f5f5;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e6e6e6;
+        }
+    </style>
+</head>
+<body class="layui-layout-body">
+
+<div class="layui-layout layui-layout-admin">
+
+    <!-- ========== 管理员布局 ========== -->
+    <th:block th:if="${session.admin != null}">
+        <div th:insert="~{common/admin_header :: header}"></div>
+
+        <div class="layui-side layui-bg-black">
+            <div class="layui-side-scroll">
+                <ul class="layui-nav layui-nav-tree">
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">书籍管理</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/addBookPage">&emsp;&emsp;录入新书</a></dd>
+                            <dd><a href="/addCategoryPage?pageNum=1">&emsp;&emsp;新建类别</a></dd>
+                            <dd><a href="/showBooksPage">&emsp;&emsp;查询书籍</a></dd>
+                            <dd><a href="/importBooksPage">&emsp;&emsp;批量导入</a></dd>
+                        </dl>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">用户管理</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/showUsersPage?pageNum=1">&emsp;&emsp;查询用户</a></dd>
+                            <dd><a href="/addUserPage">&emsp;&emsp;新增用户</a></dd>
+                            <dd><a href="/importUsersPage">&emsp;&emsp;批量导入</a></dd>
+                        </dl>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">借阅信息</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/allBorrowBooksRecordPage?pageNum=1">&emsp;&emsp;所有记录</a></dd>
+                        </dl>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">公告管理</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/manageAnnouncementPage?pageNum=1">&emsp;&emsp;管理公告</a></dd>
+                        </dl>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </th:block>
+
+    <!-- ========== 用户布局 ========== -->
+    <th:block th:if="${session.user != null}">
+        <div th:insert="~{common/user_header :: header}"></div>
+
+        <div class="layui-side layui-bg-black">
+            <div class="layui-side-scroll">
+                <ul class="layui-nav layui-nav-tree">
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">借阅管理</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/userBorrowBookRecord">&emsp;&emsp;借书记录</a></dd>
+                            <dd><a href="/borrowingPage">&emsp;&emsp;借阅书籍</a></dd>
+                        </dl>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">书籍管理</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/userReturnBooksPage">&emsp;&emsp;归还书籍</a></dd>
+                            <dd><a href="/findBookPage">&emsp;&emsp;查询书籍</a></dd>
+                        </dl>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </th:block>
+
+    <!-- ========== 正文区域 ========== -->
+    <div class="layui-body layui-container">
+        <div class="detail-container">
+            <!-- 面包屑导航 -->
+            <div class="breadcrumb" style="margin-top:10px;">
+                <a th:href="${session.admin != null ? '/adminIndex' : '/userIndex'}">首页</a>
+                <span>/</span>
+                <span th:text="${announcement.type == 'activity' ? '活动详情' : '公告详情'}">详情</span>
+            </div>
+
+            <!-- 标题 -->
+            <div class="detail-header">
+                <h2 th:text="${announcement.title}">标题</h2>
+                <div class="detail-meta">
+                    <span class="type-badge"
+                          th:classappend="${announcement.type == 'activity' ? 'type-activity' : 'type-announcement'}"
+                          th:text="${announcement.type == 'activity' ? '活动' : '公告'}"></span>
+                    <span th:text="'发布时间：' + ${#dates.format(announcement.createTime, 'yyyy-MM-dd HH:mm')}">发布时间</span>
+                    <span th:if="${announcement.updateTime != null}"
+                          th:text="' | 更新于：' + ${#dates.format(announcement.updateTime, 'yyyy-MM-dd HH:mm')}"></span>
+                </div>
+            </div>
+
+            <!-- 封面图 -->
+            <div class="detail-cover" th:if="${announcement.coverImage != null && !announcement.coverImage.isEmpty()}">
+                <img th:src="${announcement.coverImage}" th:alt="${announcement.title}"/>
+            </div>
+
+            <!-- 摘要 -->
+            <blockquote class="layui-elem-quote" th:if="${announcement.summary != null && !announcement.summary.isEmpty()}"
+                        th:text="${announcement.summary}"></blockquote>
+
+            <!-- 详细内容 -->
+            <div class="detail-content" th:utext="${announcement.content}"></div>
+
+            <!-- 返回 -->
+            <div class="back-link">
+                <a th:href="${session.admin != null ? '/adminIndex' : '/userIndex'}" class="layui-btn layui-btn-primary">← 返回首页</a>
+            </div>
+        </div>
+    </div>
+
+    <div th:insert="~{common/footer :: footer}"></div>
+
+</div>
+
+<script src="/scripts/jquery.min.js"></script>
+<script src="/layui/layui.js"></script>
+<script>
+    layui.use('element', function () {
+        var element = layui.element;
+        element.render('nav');
+    });
+</script>
+</body>
+</html>

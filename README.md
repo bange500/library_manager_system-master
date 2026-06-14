@@ -1,6 +1,6 @@
 # 图书管理系统 (Library Manager System)
 
-> 本文档基于项目源码自动生成，涵盖项目整体架构、模块职责、关键类与函数、依赖关系及运行方式等关键信息。
+> 本文档基于项目源码生成，涵盖项目整体架构、模块职责、关键类与函数、依赖关系及运行方式等关键信息。
 
 ---
 
@@ -79,6 +79,8 @@ library_manager_system-master/
 │   │       │   ├── library-manager-system.sql # 数据库初始化脚本
 │   │       │   ├── migrate-password-bcrypt.sql # BCrypt 密码迁移脚本
 │   │       │   └── seed-novel-books.sql       # 小说类100条测试数据
+│   │       ├── sql/
+│   │       │   └── announcement.sql            # 公告/活动建表+示例数据
 │   │       ├── static/                       # 静态资源 (CSS/JS/图片)
 │   │       └── templates/                    # Thymeleaf 页面模板
 │   └── test/                                 # 单元测试
@@ -92,14 +94,15 @@ library_manager_system-master/
 
 ### 3.1 表结构概览
 
-| 表名               | 说明       | 主要字段                                                                                                                     |
-| ------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `admin`          | 管理员表   | admin_id, admin_name, admin_pwd(200), admin_email                                                                            |
-| `user`           | 用户表     | user_id, user_name, user_pwd(200), user_email                                                                                |
-| `book`           | 图书表     | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction, isbn, publish_date, total_stock |
-| `book_category`  | 图书类别表 | category_id, category_name                                                                                                   |
-| `borrowingbooks` | 借阅记录表 | id, user_id, book_id, date                                                                                                   |
-| `dept`           | 部门表     | dept_id, dept_name                                                                                                           |
+| 表名               | 说明        | 主要字段                                                                                                                     |
+| ------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `admin`          | 管理员表    | admin_id, admin_name, admin_pwd(200), admin_email                                                                            |
+| `user`           | 用户表      | user_id, user_name, user_pwd(200), user_email                                                                                |
+| `book`           | 图书表      | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction, isbn, publish_date, total_stock |
+| `book_category`  | 图书类别表  | category_id, category_name                                                                                                   |
+| `borrowingbooks` | 借阅记录表  | id, user_id, book_id, date                                                                                                   |
+| `announcement`   | 公告/活动表 | id, title, content, summary, cover_image, type, is_carousel, create_time, update_time                                        |
+| `dept`           | 部门表      | dept_id, dept_name                                                                                                           |
 
 > **注意**：`user_pwd` 和 `admin_pwd` 列已扩展为 `varchar(200)` 以存储 BCrypt 哈希值（固定 60 字符）。
 > `book` 表通过 `migrate-password-bcrypt.sql` 追加了 `isbn`、`publish_date`、`total_stock` 三个字段，`book_introduction` 改为 TEXT。
@@ -147,6 +150,7 @@ library_manager_system-master/
   - 检查管理员是否存在 (`/isAdminExist`)
   - 页面跳转：添加图书、添加类别、查看用户、查看图书、导入等
   - 更新管理员信息 (`/updateAdmin`)，密码自动 BCrypt 加密
+  - 公告/活动管理 (`/manageAnnouncementPage`、`/addAnnouncement`、`/updateAnnouncement`、`/deleteAnnouncement`)
   - 退出登录 (`/adminLogOut`)
 
 #### BookController
@@ -185,6 +189,7 @@ library_manager_system-master/
   - 添加/删除用户 (`/addUser`, `/deleteUser`)
   - Excel 批量导入用户 (`/importUsersByExcel`)
   - 获取部门列表 (`/getDepts`)
+  - 公告/活动详情 (`/announcementDetail`)
 
 ### 4.3 实体/VO 模块 (`domain`)
 
@@ -198,6 +203,7 @@ library_manager_system-master/
 | `Department`       | 部门实体                                           | —                                        |
 | `BookVo`           | 图书视图对象（含是否可借状态）                     | —                                        |
 | `BorrowingBooksVo` | 借阅记录视图对象（含 User、Book 对象及格式化日期） | —                                        |
+| `Announcement`     | 公告/活动实体                                      | —                                        |
 
 ### 4.4 数据层模块 (`mapper`)
 
@@ -211,6 +217,7 @@ library_manager_system-master/
 | `BookCategoryMapper`   | BookCategory   |
 | `BorrowingBooksMapper` | BorrowingBooks |
 | `DepartmentMapper`     | Department     |
+| `AnnouncementMapper`   | Announcement   |
 
 ### 4.5 业务层模块 (`service`)
 
@@ -223,6 +230,7 @@ library_manager_system-master/
 | `IBookCategoryService`         | 图书类别分页查询、删除类别                           |
 | `IBorrowingBooksRecordService` | 借阅记录分页查询（管理员/用户）、删除记录            |
 | `IUserService`                 | 用户ID登录/增删/分页、借还书、部门查询、批量导入用户 |
+| `IAnnouncementService`         | 公告/活动轮播查询、分页、CRUD                        |
 
 #### 实现类关键逻辑
 
@@ -233,6 +241,7 @@ library_manager_system-master/
 | `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                                                                      |
 | `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                                                              |
 | `UserServiceImpl`                 | BCrypt 密码验证+自动升级；新增/批量导入时密码自动加密；借书时检查是否已被借阅；还书按 userId+bookId 删除                                          |
+| `AnnouncementServiceImpl`         | 轮播公告查询（is_carousel=1）、普通公告列表、分页查询、增删改操作                                                                                 |
 
 ### 4.6 工具类模块 (`utils`)
 
@@ -325,6 +334,12 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 | `/getRecommendBooks`        | GET      | BookController      | 获取推荐图书（同类别随机，排除用户借阅中） |
 | `/allBorrowBooksRecordPage` | 任意     | BorrowingController | 管理员查看所有借阅记录                     |
 | `/userBorrowBookRecord`     | 任意     | UserController      | 用户查看个人借阅记录                       |
+| `/manageAnnouncementPage`   | GET      | AdminController     | 管理员公告管理页面（分页）                 |
+| `/addAnnouncement`          | POST     | AdminController     | 新增公告/活动                              |
+| `/updateAnnouncement`       | POST     | AdminController     | 更新公告/活动                              |
+| `/deleteAnnouncement`       | POST     | AdminController     | 删除公告/活动                              |
+| `/getAnnouncementJson`      | GET      | AdminController     | 获取公告JSON（编辑弹窗用）                 |
+| `/announcementDetail`       | GET      | UserController      | 公告/活动详情页                            |
 
 ---
 
@@ -473,28 +488,30 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 
 ### 9.1 模板目录 (`templates`)
 
-| 目录        | 页面                             | 说明                            |
-| ----------- | -------------------------------- | ------------------------------- |
-| `admin/`  | `index.html`                   | 管理员首页                      |
-|             | `addBook.html`                 | 添加图书                        |
-|             | `addCategory.html`             | 管理图书类别（删除需二次确认）  |
-|             | `showBooks.html`               | 查询图书（按类别+分页，可删除） |
-|             | `showUsers.html`               | 用户管理（分页+删除）           |
-|             | `addUser.html`                 | 添加用户                        |
-|             | `importBooks.html`             | 批量导入图书（Excel）           |
-|             | `importUsers.html`             | 批量导入用户（Excel）           |
-|             | `allBorrowingBooksRecord.html` | 所有借阅记录                    |
-|             | `adminInfo.html`               | 管理员信息修改                  |
-| `user/`   | `index.html`                   | 用户首页                        |
-|             | `findBook.html`                | 查找图书（按类别+按书名+分页）  |
-|             | `borrowingBooks.html`          | 借书页面                        |
-|             | `returnBooks.html`             | 还书页面                        |
-|             | `borrowingBooksRecord.html`    | 个人借书记录                    |
-|             | `userMessage.html`             | 个人信息                        |
-| `common/` | `admin_header.html`            | 管理员公共头部                  |
-|             | `user_header.html`             | 用户公共头部                    |
-|             | `footer.html`                  | 公共底部                        |
-| 根目录      | `index.html`                   | 登录首页（角色切换动态表单）    |
+| 目录              | 页面                             | 说明                            |
+| ----------------- | -------------------------------- | ------------------------------- |
+| `admin/`        | `index.html`                   | 管理员首页                      |
+|                   | `addBook.html`                 | 添加图书                        |
+|                   | `addCategory.html`             | 管理图书类别（删除需二次确认）  |
+|                   | `showBooks.html`               | 查询图书（按类别+分页，可删除） |
+|                   | `showUsers.html`               | 用户管理（分页+删除）           |
+|                   | `addUser.html`                 | 添加用户                        |
+|                   | `importBooks.html`             | 批量导入图书（Excel）           |
+|                   | `importUsers.html`             | 批量导入用户（Excel）           |
+|                   | `allBorrowingBooksRecord.html` | 所有借阅记录                    |
+|                   | `adminInfo.html`               | 管理员信息修改                  |
+|                   | `manageAnnouncement.html`      | 公告/活动管理                   |
+| `user/`         | `index.html`                   | 用户首页                        |
+|                   | `findBook.html`                | 查找图书（按类别+按书名+分页）  |
+|                   | `borrowingBooks.html`          | 借书页面                        |
+|                   | `returnBooks.html`             | 还书页面                        |
+|                   | `borrowingBooksRecord.html`    | 个人借书记录                    |
+|                   | `userMessage.html`             | 个人信息                        |
+| `announcement/` | `detail.html`                  | 公告/活动详情页                 |
+| `common/`       | `admin_header.html`            | 管理员公共头部                  |
+|                   | `user_header.html`             | 用户公共头部                    |
+|                   | `footer.html`                  | 公共底部                        |
+| 根目录            | `index.html`                   | 登录首页（角色切换动态表单）    |
 
 ### 9.2 静态资源 (`static`)
 
@@ -593,7 +610,9 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 7. **VO 视图对象**：`BookVo`、`BorrowingBooksVo` 将实体与展示逻辑分离。
 8. **Excel 批量导入**：基于 Apache POI 封装通用工具，支持图书和用户批量导入。
 9. **动态登录表单**：角色切换时实时变更输入框 name 属性，学生用ID、管理员用用户名。
-10. **随机推荐**：同类别图书在内存中随机打乱后返回，按书名去重，排除当前书和用户借阅中的书，无需额外缓存依赖。
+10. **首页轮播图**：基于数据库的公告/活动轮播，动态渲染，点击可跳转详情页，标题叠加层展示。
+11. **公告/活动系统**：管理员可管理公告和活动（增删改），支持轮播展示、类型标签、详情页（保留完整顶栏侧边栏布局）。
+12. **随机推荐**：同类别图书在内存中随机打乱后返回，按书名去重，排除当前书和用户借阅中的书，无需额外缓存依赖。
 
 ### 13.2 注意事项
 

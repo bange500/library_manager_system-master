@@ -1,5 +1,7 @@
 package com.zbw.controller;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Controller;
@@ -10,10 +12,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.zbw.domain.Admin;
+import com.zbw.domain.Announcement;
 import com.zbw.domain.BookCategory;
 import com.zbw.domain.User;
 import com.zbw.domain.Vo.BookVo;
 import com.zbw.service.IAdminService;
+import com.zbw.service.IAnnouncementService;
 import com.zbw.service.IBookCategoryService;
 import com.zbw.service.IUserService;
 import com.zbw.utils.page.Page;
@@ -30,6 +34,8 @@ public class AdminController {
     private IBookCategoryService bookCategoryService;
     @Resource
     private IUserService userService;
+    @Resource
+    private IAnnouncementService announcementService;
 
     @RequestMapping("/isAdminExist")
     @ResponseBody
@@ -41,7 +47,8 @@ public class AdminController {
     @PostMapping("/adminLogin")
     public String adminLogin(@RequestParam("userName") String userName,
                              @RequestParam("password") String password,
-                             HttpServletRequest request) {
+                             HttpServletRequest request,
+                             Model model) {
         Admin admin = adminService.adminLogin(userName, password);
         if (admin == null) {
             request.getSession().setAttribute("flag", 1);
@@ -49,6 +56,8 @@ public class AdminController {
         }
         request.getSession().setAttribute("flag", 0);
         request.getSession().setAttribute("admin", admin);
+        model.addAttribute("carouselList", announcementService.getCarouselAnnouncements());
+        model.addAttribute("announcementList", announcementService.getNormalAnnouncements());
         return "admin/index";
     }
 
@@ -70,7 +79,11 @@ public class AdminController {
     }
 
     @RequestMapping("/adminIndex")
-    public String returnAdminIndexPage() {
+    public String returnAdminIndexPage(Model model) {
+        List<Announcement> carouselList = announcementService.getCarouselAnnouncements();
+        List<Announcement> announcementList = announcementService.getNormalAnnouncements();
+        model.addAttribute("carouselList", carouselList);
+        model.addAttribute("announcementList", announcementList);
         return "admin/index";
     }
 
@@ -138,5 +151,65 @@ public class AdminController {
                                               @RequestParam("newPwd") String newPwd,
                                               HttpServletRequest request) {
         return adminService.updateAdminPwd(oldPwd, newPwd, request);
+    }
+
+    // ==================== 公告/活动管理 ====================
+
+    /**
+     * 返回公告管理页面
+     */
+    @RequestMapping("/manageAnnouncementPage")
+    public String manageAnnouncementPage(@RequestParam("pageNum") int pageNum, Model model) {
+        Page<Announcement> page = announcementService.getAnnouncementsByPage(pageNum);
+        model.addAttribute("page", page);
+        return "admin/manageAnnouncement";
+    }
+
+    /**
+     * 新增公告/活动
+     */
+    @RequestMapping("/addAnnouncement")
+    @ResponseBody
+    public Map<String, Object> addAnnouncement(Announcement announcement) {
+        Map<String, Object> result = new HashMap<>();
+        boolean success = announcementService.saveAnnouncement(announcement);
+        result.put("success", success);
+        result.put("msg", success ? "添加成功" : "添加失败");
+        return result;
+    }
+
+    /**
+     * 更新公告/活动
+     */
+    @RequestMapping("/updateAnnouncement")
+    @ResponseBody
+    public Map<String, Object> updateAnnouncement(Announcement announcement) {
+        Map<String, Object> result = new HashMap<>();
+        boolean success = announcementService.updateAnnouncement(announcement);
+        result.put("success", success);
+        result.put("msg", success ? "更新成功" : "更新失败");
+        return result;
+    }
+
+    /**
+     * 获取公告/活动JSON数据（供编辑弹窗使用）
+     */
+    @RequestMapping("/getAnnouncementJson")
+    @ResponseBody
+    public Announcement getAnnouncementJson(@RequestParam("id") int id) {
+        return announcementService.getById(id);
+    }
+
+    /**
+     * 删除公告/活动
+     */
+    @RequestMapping("/deleteAnnouncement")
+    @ResponseBody
+    public Map<String, Object> deleteAnnouncement(@RequestParam("id") int id) {
+        Map<String, Object> result = new HashMap<>();
+        boolean success = announcementService.deleteAnnouncement(id);
+        result.put("success", success);
+        result.put("msg", success ? "删除成功" : "删除失败");
+        return result;
     }
 }
