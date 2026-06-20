@@ -90,6 +90,7 @@
                         <th>作者</th>
                         <th>出版社</th>
                         <th>状态</th>
+                        <th>编辑</th>
                         <th>删除</th>
                     </tr>
                     </thead>
@@ -107,6 +108,10 @@
                         <td><label th:text="${book.getBookPublish()}"></label></td>
                         <td><label th:text="${book.getIsExist()}"></label></td>
                         <td>
+                            <a th:href="@{/editBookPage(bookId=${book.getBookId()})}"
+                               class="layui-btn layui-btn-xs layui-btn-warm">编辑</a>
+                        </td>
+                        <td>
                             <button class="layui-btn layui-btn-sm layui-btn-danger btn_deleteBook"
                                     th:value="${book.getBookId()}"
                                     th:data-book-name="${book.getBookName()}">删除
@@ -116,7 +121,7 @@
 
                     <!-- 无数据：空提示 -->
                     <tr th:if="${page == null || page.getList() == null || page.getList().isEmpty()}">
-                        <td colspan="7" style="text-align:center; color:#999; padding:30px;">
+                        <td colspan="8" style="text-align:center; color:#999; padding:30px;">
                             <i class="layui-icon layui-icon-tips" style="font-size:24px; color:#ccc;"></i>
                             <p style="margin-top:8px;">
                                 <span th:if="${bookCategory != null && bookCategory != 0}">该分类下暂无书籍数据</span>
@@ -127,7 +132,7 @@
 
                     <!-- 分页导航 -->
                     <tr th:if="${page != null && page.getList() != null && !page.getList().isEmpty()}">
-                        <td colspan="7">
+                        <td colspan="8">
                             <div style="margin: auto; width: 160px;">
 
                                 <a id="prePage"

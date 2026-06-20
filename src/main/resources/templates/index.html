@@ -73,12 +73,13 @@
 </div>
 
 
-<script th:src="@{/scripts/jquery.min.js}"></script>
-<script th:src="@{/layui/layui.js}"></script>
+<script src="/scripts/jquery.min.js"></script>
+<script src="/layui/layui.js"></script>
 
 
 <script th:inline="javascript">
-    layui.use(['layer', 'form'], function () {
+    layui.use(['jquery', 'layer', 'form'], function () {
+        var $ = layui.$;
         let layer = layui.layer;
         let form = layui.form;
         form.render();
@@ -109,57 +110,57 @@
                 $("#username").attr("placeholder", "请输入用户名");
             }
         });
-    });
 
-    // 登录按钮点击事件
-    $("#sub_btn").click(function () {
-        let username = $("#username").val();
-        let user_judge = check(username);
+        // 登录按钮点击事件
+        $("#sub_btn").click(function () {
+            let username = $("#username").val();
+            let user_judge = check(username);
 
-        if (user_judge) {
-            // 检查是否包含中文字符
-            if (hasChinese(username)) {
-                var labelText = $("#loginLabel").text().replace(":", "");
-                layer.alert(labelText + "错误", {icon: 5});
-                return false;
-            }
+            if (user_judge) {
+                // 检查是否包含中文字符
+                if (hasChinese(username)) {
+                    var labelText = $("#loginLabel").text().replace(":", "");
+                    layer.alert(labelText + "错误", {icon: 5});
+                    return false;
+                }
 
-            let password = $("#password").val();
-            let pwd_judge = check(password);
+                let password = $("#password").val();
+                let pwd_judge = check(password);
 
-            if (pwd_judge) {
-                let role_id = $('input[name="role"]:checked').val();
+                if (pwd_judge) {
+                    let role_id = $('input[name="role"]:checked').val();
 
-                if (role_id == 1) {
-                    // 学生登录 → /userLogin
-                    $("#my_form").attr("action", "/userLogin");
-                    $("#my_form").submit();
+                    if (role_id == 1) {
+                        // 学生登录 → /userLogin
+                        $("#my_form").attr("action", "/userLogin");
+                        $("#my_form").submit();
+                    } else {
+                        // 管理员登录 → /adminLogin
+                        $("#my_form").attr("action", "/adminLogin");
+                        $("#my_form").submit();
+                    }
                 } else {
-                    // 管理员登录 → /adminLogin
-                    $("#my_form").attr("action", "/adminLogin");
-                    $("#my_form").submit();
+                    layer.alert("密码不能为空", {icon: 5});
+                    return false;
                 }
             } else {
-                layer.alert("密码不能为空", {icon: 5});
+                var labelText = $("#loginLabel").text().replace(":", "");
+                layer.alert(labelText + "不能为空", {icon: 5});
                 return false;
             }
-        } else {
-            var labelText = $("#loginLabel").text().replace(":", "");
-            layer.alert(labelText + "不能为空", {icon: 5});
-            return false;
+        });
+
+        function check(val) {
+            val = val.toString().trim();
+            return !(val == '');
+        }
+
+        // 检查是否包含中文字符
+        function hasChinese(str) {
+            var reg = /[一-龥]/;
+            return reg.test(str);
         }
     });
-
-    function check(val) {
-        val = val.toString().trim();
-        return !(val == '');
-    }
-
-    // 检查是否包含中文字符
-    function hasChinese(str) {
-        var reg = /[\u4e00-\u9fa5]/;
-        return reg.test(str);
-    }
 </script>
 </body>
 </html>

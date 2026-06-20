@@ -3,11 +3,13 @@ package com.zbw.controller;
 
 import com.zbw.domain.Announcement;
 import com.zbw.domain.Department;
+import com.zbw.domain.Reservation;
 import com.zbw.domain.User;
 import com.zbw.domain.Vo.BorrowingBooksVo;
 import com.zbw.service.IAnnouncementService;
 import com.zbw.service.IBookService;
 import com.zbw.service.IBorrowingBooksRecordService;
+import com.zbw.service.IReservationService;
 import com.zbw.service.IUserService;
 import com.zbw.utils.ExcelImportUtil;
 import com.zbw.utils.page.Page;
@@ -43,6 +45,9 @@ public class UserController {
 
     @Resource
     private IAnnouncementService announcementService;
+
+    @Resource
+    private IReservationService reservationService;
 
     /**
      * 用户登录
@@ -338,5 +343,70 @@ public class UserController {
         }
         model.addAttribute("announcement", announcement);
         return "announcement/detail";
+    }
+
+    // ==================== 图书预约 ====================
+
+    /**
+     * 预约图书
+     */
+    @RequestMapping("/reserveBook")
+    @ResponseBody
+    public Map<String, Object> reserveBook(@RequestParam("bookId") int bookId, HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<>();
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        if (sessionUser == null) {
+            result.put("success", false);
+            result.put("msg", "请先登录");
+            return result;
+        }
+        String errMsg = reservationService.reserveBook(sessionUser.getUserId(), bookId);
+        result.put("success", errMsg == null);
+        result.put("msg", errMsg != null ? errMsg : "预约成功，图书归还后将通知您");
+        return result;
+    }
+
+    /**
+     * 获取通知数（header红点）
+     */
+    @RequestMapping("/getNotificationCount")
+    @ResponseBody
+    public int getNotificationCount(HttpServletRequest request) {
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        if (sessionUser == null) return 0;
+        return reservationService.getNotificationCount(sessionUser.getUserId());
+    }
+
+    /**
+     * 用户预约列表页
+     */
+    @RequestMapping("/userReservationsPage")
+    public String userReservationsPage(Model model, HttpServletRequest request) {
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        if (sessionUser == null) {
+            return "redirect:/userIndex";
+        }
+        List<Reservation> list = reservationService.getUserReservations(sessionUser.getUserId());
+        model.addAttribute("reservations", list);
+        return "user/reservations";
+    }
+
+    /**
+     * 取消预约
+     */
+    @RequestMapping("/cancelReservation")
+    @ResponseBody
+    public Map<String, Object> cancelReservation(@RequestParam("id") int id, HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<>();
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        if (sessionUser == null) {
+            result.put("success", false);
+            result.put("msg", "请先登录");
+            return result;
+        }
+        boolean ok = reservationService.cancelReservation(id, sessionUser.getUserId());
+        result.put("success", ok);
+        result.put("msg", ok ? "已取消预约" : "取消失败");
+        return result;
     }
 }

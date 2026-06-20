@@ -16,9 +16,25 @@
                         <dd><a href="/userSecuritySettingsPage">安全设置</a></dd>
                     </dl>
                 </li>
+                <li class="layui-nav-item">
+                    <a href="/userReservationsPage" style="position:relative;">
+                        <i class="layui-icon layui-icon-notice" style="font-size:18px;"></i>
+                        <span id="notifyBadge" style="display:none;position:absolute;top:2px;right:-8px;background:#FF5722;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;line-height:1.4;">0</span>
+                    </a>
+                </li>
                 <li class="layui-nav-item"><a href="/userLogOut">退出登录</a></li>
             </ul>
         </div>
+
+        <script>
+            $(function() {
+                $.get('/getNotificationCount', function(count) {
+                    if (count > 0) {
+                        $('#notifyBadge').text(count).show();
+                    }
+                });
+            });
+        </script>
 
     </footer>
 </head>

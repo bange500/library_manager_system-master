@@ -26,6 +26,9 @@ public interface IAdminService {
     // 根据id删除图书
     boolean deleteBookById(int bookId);
 
+    // 修改图书信息
+    boolean updateBook(Book book);
+
     //获取所有图书类别
     List<BookCategory> getBookCategories();
 

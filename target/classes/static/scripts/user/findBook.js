@@ -268,6 +268,33 @@ function fillDetailFields(data) {
     setText('detail_bookIntroduction', safe(data.bookIntroduction, '暂无简介'));
     setText('detail_totalStock',       safe(data.totalStock));
     setText('detail_availableCount',   safe(data.availableCount));
+
+    // 预约信息
+    var reservationCount = data.reservationCount || 0;
+    setText('detail_reservationCount', reservationCount + ' 人排队');
+
+    // 控制预约按钮显示
+    var $reserveRow = $('#reserveRow');
+    var $reserveBtn = $('#reserveBtn');
+    var $reserveMsg = $('#reserveMsg');
+    var isUnavailable = (isExist === '不可借');
+    var userHasReserved = data.userHasReserved === true;
+
+    if (isUnavailable) {
+        $reserveRow.show();
+        if (userHasReserved) {
+            $reserveBtn.text('已预约').prop('disabled', true).removeClass('layui-btn-warm').addClass('layui-btn-disabled');
+            $reserveMsg.text('图书归还后将通知您');
+        } else {
+            $reserveBtn.text('预约此书').prop('disabled', false).removeClass('layui-btn-disabled').addClass('layui-btn-warm');
+            $reserveMsg.text('');
+        }
+    } else {
+        $reserveRow.hide();
+    }
+
+    // 保存当前查看的bookId供预约使用
+    window._currentBookId = data.bookId;
 }
 
 /**
@@ -287,7 +314,7 @@ function resetDetailFields() {
     var ids = [
         'detail_bookId', 'detail_bookName', 'detail_bookAuthor', 'detail_bookPublish',
         'detail_isExist', 'detail_isbn', 'detail_categoryName', 'detail_publishDate',
-        'detail_bookIntroduction', 'detail_totalStock', 'detail_availableCount'
+        'detail_bookIntroduction', 'detail_totalStock', 'detail_availableCount', 'detail_reservationCount'
     ];
     for (var i = 0; i < ids.length; i++) {
         var $el = $('#' + ids[i]);
@@ -295,8 +322,10 @@ function resetDetailFields() {
             $el.text('-').css('color', '');
         }
     }
-    // 同时重置推荐区域
+    // 同时重置推荐/预约区域
     resetRecommendPanel();
+    $('#reserveRow').hide();
+    window._currentBookId = null;
 }
 
 // ========== 推荐图书 ==========
@@ -386,6 +415,40 @@ function showRecommendEmpty() {
     if ($list.length) $list.empty();
     if ($empty.length) $empty.show();
     if ($panel.length) $panel.show();
+}
+
+// ========== 预约功能 ==========
+
+function reserveBook() {
+    var bookId = window._currentBookId;
+    if (!bookId) {
+        layer.msg('请先点击"更多内容"查看书籍详情', {icon: 5});
+        return;
+    }
+    var $btn = $('#reserveBtn');
+    if ($btn.prop('disabled')) return;
+    $btn.prop('disabled', true).text('预约中...');
+
+    $.ajax({
+        type: 'POST',
+        url: '/reserveBook',
+        data: { bookId: bookId },
+        dataType: 'json',
+        success: function (res) {
+            if (res.success) {
+                layer.msg(res.msg, {icon: 1});
+                $btn.text('已预约').removeClass('layui-btn-warm').addClass('layui-btn-disabled');
+                $('#reserveMsg').text('图书归还后将通知您');
+            } else {
+                layer.msg(res.msg || '预约失败', {icon: 2});
+                $btn.prop('disabled', false).text('预约此书');
+            }
+        },
+        error: function () {
+            layer.msg('请求失败，请重试', {icon: 2});
+            $btn.prop('disabled', false).text('预约此书');
+        }
+    });
 }
 
 /**

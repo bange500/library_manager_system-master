@@ -17,7 +17,7 @@
     <!-- ==================== 全局版本管理 ==================== -->
     <properties>
         <!-- Spring Boot 版本，3.x 对应 JDK 17+ -->
-        <spring-boot.version>3.3.2</spring-boot.version>
+        <spring-boot.version>3.5.15</spring-boot.version>
         <!-- 编译和运行使用的 Java 版本 -->
         <java.version>17</java.version>
         <!-- 项目编码，防止中文乱码 -->

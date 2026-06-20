@@ -88,6 +88,12 @@ public class AdminServiceImpl implements IAdminService {
     }
 
     @Override
+    public boolean updateBook(Book book) {
+        int n = bookMapper.updateById(book);
+        return n > 0;
+    }
+
+    @Override
     public List<BookCategory> getBookCategories() {
         return bookCategoryMapper.selectList(null);
     }

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>我的预约 - 图书管理系统</title>
+    <link href="/layui/css/layui.css" rel="stylesheet"/>
+    <style>
+        .status-0 { color: #FFB800; }  /* 排队中 */
+        .status-1 { color: #5FB878; font-weight: bold; }  /* 待借阅 */
+        .status-2 { color: #1E9FFF; }  /* 已借出 */
+        .status-3 { color: #ccc; }     /* 已取消 */
+        .reserve-container { padding: 10px 20px; }
+    </style>
+</head>
+<body class="layui-layout-body">
+
+<div class="layui-layout layui-layout-admin">
+
+    <div th:insert="~{common/user_header :: header}"></div>
+
+    <div class="layui-side layui-bg-black">
+        <div class="layui-side-scroll">
+            <ul class="layui-nav layui-nav-tree">
+                <li class="layui-nav-item ">
+                    <a href="javascript:;">借阅管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/userBorrowBookRecord">&emsp;&emsp;借书记录</a></dd>
+                        <dd><a href="/borrowingPage">&emsp;&emsp;借阅书籍</a></dd>
+                    </dl>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="javascript:;">书籍管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/userReturnBooksPage">&emsp;&emsp;归还书籍</a></dd>
+                        <dd><a href="/findBookPage">&emsp;&emsp;查询书籍</a></dd>
+                    </dl>
+                </li>
+                <li class="layui-nav-item layui-nav-itemed layui-this">
+                    <a href="javascript:;">预约管理</a>
+                    <dl class="layui-nav-child">
+                        <dd class="layui-this"><a href="/userReservationsPage">&emsp;&emsp;我的预约</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="layui-body layui-container">
+        <div class="reserve-container">
+            <hr class="layui-bg-green">
+            <h2 style="text-align:center;">我的预约</h2>
+            <hr class="layui-bg-green">
+
+            <table class="layui-table" lay-size="sm">
+                <thead>
+                <tr>
+                    <th>书名</th>
+                    <th>预约时间</th>
+                    <th>状态</th>
+                    <th>通知时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(reservations)}">
+                    <td colspan="5" style="text-align:center;color:#999;padding:40px;">暂无预约记录</td>
+                </tr>
+                <tr th:each="r : ${reservations}">
+                    <td th:text="${r.bookName}">书名</td>
+                    <td th:text="${#dates.format(r.reserveTime, 'yyyy-MM-dd HH:mm')}">预约时间</td>
+                    <td>
+                        <span th:if="${r.status == 0}" class="status-0">排队中</span>
+                        <span th:if="${r.status == 1}" class="status-1">待借阅（已通知）</span>
+                        <span th:if="${r.status == 2}" class="status-2">已借出</span>
+                        <span th:if="${r.status == 3}" class="status-3">已取消</span>
+                    </td>
+                    <td>
+                        <span th:if="${r.notifyTime != null}" th:text="${#dates.format(r.notifyTime, 'yyyy-MM-dd HH:mm')}"></span>
+                        <span th:if="${r.notifyTime == null}">-</span>
+                    </td>
+                    <td>
+                        <a th:if="${r.status == 1}" class="layui-btn layui-btn-xs" th:href="${'/borrowingPage'}">去借阅</a>
+                        <button th:if="${r.status == 0}" class="layui-btn layui-btn-xs layui-btn-primary btn-cancel"
+                                th:attr="data-id=${r.id}" onclick="cancelReserve(this)">取消预约</button>
+                        <span th:if="${r.status == 2}" style="color:#999;">已完成</span>
+                        <span th:if="${r.status == 3}" style="color:#ccc;">已取消</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div th:insert="~{common/footer :: footer}"></div>
+
+</div>
+
+<script src="/scripts/jquery.min.js"></script>
+<script src="/layui/layui.js"></script>
+<script>
+    layui.use(['element', 'layer'], function () {
+        var element = layui.element;
+        var layer = layui.layer;
+
+        element.render('nav');
+
+        // 取消预约
+        window.cancelReserve = function (btn) {
+            var id = $(btn).data('id');
+            layer.confirm('确定取消该预约吗？', {icon: 3, title: '确认'}, function (idx) {
+                $.ajax({
+                    type: 'POST',
+                    url: '/cancelReservation',
+                    data: {id: id},
+                    dataType: 'json',
+                    success: function (res) {
+                        if (res.success) {
+                            layer.msg('已取消', {icon: 1}, function () { location.reload(); });
+                        } else {
+                            layer.msg(res.msg || '取消失败', {icon: 2});
+                        }
+                    },
+                    error: function () {
+                        layer.msg('请求失败', {icon: 2});
+                    }
+                });
+                layer.close(idx);
+            });
+        };
+    });
+</script>
+</body>
+</html>

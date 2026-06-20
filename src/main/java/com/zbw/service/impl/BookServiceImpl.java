@@ -72,9 +72,11 @@ public class BookServiceImpl implements IBookService {
             bookVo.setBookPublish(b.getBookPublish());
 
             List<BorrowingBooks> borrowingBooks = borrowingBooksMapper.selectList(
-                new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getBookId, b.getBookId()));
+                    new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getBookId, b.getBookId()));
 
-            if (borrowingBooks == null || borrowingBooks.isEmpty()) {
+            int borrowedCount = (borrowingBooks == null) ? 0 : borrowingBooks.size();
+            int totalStock = (b.getTotalStock() == null) ? 0 : b.getTotalStock();
+            if (borrowedCount < totalStock) {
                 bookVo.setIsExist("可借");
             } else {
                 bookVo.setIsExist("不可借");

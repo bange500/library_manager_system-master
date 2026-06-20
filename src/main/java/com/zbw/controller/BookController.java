@@ -7,6 +7,7 @@ import com.zbw.domain.Vo.BookVo;
 import com.zbw.service.IAdminService;
 import com.zbw.service.IBookCategoryService;
 import com.zbw.service.IBookService;
+import com.zbw.service.IReservationService;
 import com.zbw.utils.ExcelImportUtil;
 import com.zbw.utils.page.Page;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +36,8 @@ public class BookController {
     private IBookService bookService;
     @Resource
     private IBookCategoryService bookCategoryService;
+    @Resource
+    private IReservationService reservationService;
     @Resource
     private HttpServletRequest request;
 
@@ -96,6 +99,66 @@ public class BookController {
             return "false";
         }
         return "true";
+    }
+
+    /**
+     * 返回编辑图书页面
+     */
+    @RequestMapping("/editBookPage")
+    public String editBookPage(@RequestParam("bookId") int bookId, Model model) {
+        Book book = bookService.getBookDetailById(bookId);
+        if (book == null) {
+            return "redirect:/showBooksPage";
+        }
+        // 格式化出版日期字符串
+        if (book.getPublishDate() != null) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            book.setPublishDateStr(sdf.format(book.getPublishDate()));
+        }
+        model.addAttribute("book", book);
+        return "admin/editBook";
+    }
+
+    /**
+     * 管理员&emsp;&emsp;修改图书信息
+     */
+    @RequestMapping("/updateBook")
+    @ResponseBody
+    public String updateBook(@Valid Book book) {
+        // 1. ISBN唯一性校验（排除自身）
+        if (book.getIsbn() != null && !book.getIsbn().trim().isEmpty()) {
+            book.setIsbn(book.getIsbn().trim());
+            List<Book> existBooks = bookService.findByIsbn(book.getIsbn());
+            if (existBooks != null && !existBooks.isEmpty()) {
+                for (Book b : existBooks) {
+                    if (!b.getBookId().equals(book.getBookId())) {
+                        return "ISBN已被其他图书使用，请更换";
+                    }
+                }
+            }
+        }
+
+        // 2. 出版日期字符串转Date
+        if (book.getPublishDateStr() != null && !book.getPublishDateStr().trim().isEmpty()) {
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                sdf.setLenient(false);
+                book.setPublishDate(sdf.parse(book.getPublishDateStr().trim()));
+            } catch (Exception e) {
+                return "出版日期格式不正确，应为 yyyy-MM-dd";
+            }
+        }
+
+        // 3. 总库存校验
+        if (book.getTotalStock() == null || book.getTotalStock() < 0) {
+            return "库存必须为非负整数";
+        }
+
+        boolean res = adminService.updateBook(book);
+        if (res) {
+            return "true";
+        }
+        return "修改失败，请重试";
     }
 
     /**
@@ -275,7 +338,7 @@ public class BookController {
         result.put("bookName", nullToEmpty(book.getBookName()));
         result.put("bookAuthor", nullToEmpty(book.getBookAuthor()));
         result.put("bookPublish", nullToEmpty(book.getBookPublish()));
-        result.put("isExist", isBorrowed ? "不可借" : "可借");
+        result.put("isExist", (availableCount > 0) ? "可借" : "不可借");
         result.put("isbn", nullToEmpty(book.getIsbn()));
         result.put("categoryName", (category != null) ? nullToEmpty(category.getCategoryName()) : "未分类");
         result.put("categoryId", (book.getBookCategory() != null) ? book.getBookCategory() : 0);
@@ -283,6 +346,16 @@ public class BookController {
         result.put("bookIntroduction", nullToEmpty(book.getBookIntroduction()));
         result.put("totalStock", totalStock);
         result.put("availableCount", availableCount);
+
+        // 预约信息
+        result.put("reservationCount", reservationService.getQueueCount(bookId));
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        boolean userHasReserved = false;
+        if (sessionUser != null) {
+            userHasReserved = reservationService.hasUserReserved(sessionUser.getUserId(), bookId);
+        }
+        result.put("userHasReserved", userHasReserved);
+
         return result;
     }
 

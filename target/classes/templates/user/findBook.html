@@ -30,6 +30,12 @@
                         <dd class="layui-this"><a href="/findBookPage">&emsp;&emsp;查询书籍</a></dd>
                     </dl>
                 </li>
+                <li class="layui-nav-item">
+                    <a class="" href="javascript:;">预约管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/userReservationsPage">&emsp;&emsp;我的预约</a></dd>
+                    </dl>
+                </li>
             </ul>
         </div>
     </div>
@@ -199,8 +205,15 @@
                                 <tr>
                                     <td><b>借阅状态</b></td>
                                     <td><span id="detail_isExist" style="font-weight:bold;">-</span></td>
-                                    <td></td>
-                                    <td></td>
+                                    <td><b>预约排队</b></td>
+                                    <td><span id="detail_reservationCount" style="color:#1E9FFF;">-</span></td>
+                                </tr>
+                                <tr id="reserveRow" style="display:none;">
+                                    <td colspan="4" style="text-align:center;padding:8px 0;">
+                                        <button id="reserveBtn" class="layui-btn layui-btn-sm layui-btn-warm"
+                                                onclick="reserveBook()">预约此书</button>
+                                        <span id="reserveMsg" style="color:#999;font-size:12px;margin-left:10px;"></span>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>

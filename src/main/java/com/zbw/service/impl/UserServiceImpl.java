@@ -20,6 +20,7 @@ import com.zbw.mapper.BookMapper;
 import com.zbw.mapper.BorrowingBooksMapper;
 import com.zbw.mapper.DepartmentMapper;
 import com.zbw.mapper.UserMapper;
+import com.zbw.service.IReservationService;
 import com.zbw.service.IUserService;
 import com.zbw.utils.PasswordUtil;
 import com.zbw.utils.page.Page;
@@ -38,11 +39,13 @@ public class UserServiceImpl implements IUserService {
     private BorrowingBooksMapper borrowingBooksMapper;
     @Resource
     private BookMapper bookMapper;
+    @Resource
+    private IReservationService reservationService;
 
     @Override
     public List<User> findUserByUserName(String userName) {
         return userMapper.selectList(
-            new LambdaQueryWrapper<User>().eq(User::getUserName, userName));
+                new LambdaQueryWrapper<User>().eq(User::getUserName, userName));
     }
 
     @Override
@@ -75,7 +78,7 @@ public class UserServiceImpl implements IUserService {
 
         // 如果修改了密码且不是 BCrypt 密文，则加密
         if (user.getUserPwd() != null && !user.getUserPwd().isEmpty()
-            && !PasswordUtil.isBcryptHash(user.getUserPwd())) {
+                && !PasswordUtil.isBcryptHash(user.getUserPwd())) {
             user.setUserPwd(PasswordUtil.encode(user.getUserPwd()));
         }
 
@@ -94,7 +97,7 @@ public class UserServiceImpl implements IUserService {
         User user = (User) request.getSession().getAttribute("user");
 
         List<BorrowingBooks> borrowingBooksList = borrowingBooksMapper.selectList(
-            new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getUserId, user.getUserId()));
+                new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getUserId, user.getUserId()));
 
         if (null == borrowingBooksList) {
             return null;
@@ -127,20 +130,31 @@ public class UserServiceImpl implements IUserService {
     public boolean userReturnBook(int bookId, HttpServletRequest request) {
         User user = (User) request.getSession().getAttribute("user");
         int n = borrowingBooksMapper.delete(
-            new LambdaQueryWrapper<BorrowingBooks>()
-                .eq(BorrowingBooks::getUserId, user.getUserId())
-                .eq(BorrowingBooks::getBookId, bookId));
-        return n > 0;
+                new LambdaQueryWrapper<BorrowingBooks>()
+                        .eq(BorrowingBooks::getUserId, user.getUserId())
+                        .eq(BorrowingBooks::getBookId, bookId));
+        if (n > 0) {
+            // 归还成功后，通知预约排队用户
+            reservationService.processReturnNotification(bookId);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean userBorrowingBook(int bookId, HttpServletRequest request) {
         User user = (User) request.getSession().getAttribute("user");
 
-        // 检查该书是否可借
+        // 检查该书是否可借：已借出数量 < 总库存
+        Book book = bookMapper.selectById(bookId);
+        if (book == null) {
+            return false;
+        }
+        int totalStock = (book.getTotalStock() == null) ? 0 : book.getTotalStock();
         List<BorrowingBooks> list = borrowingBooksMapper.selectList(
-            new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getBookId, bookId));
-        if (list.size() > 0) {
+                new LambdaQueryWrapper<BorrowingBooks>().eq(BorrowingBooks::getBookId, bookId));
+        int borrowedCount = (list == null) ? 0 : list.size();
+        if (borrowedCount >= totalStock) {
             return false;
         }
 
@@ -165,7 +179,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public Page<User> findUserByPage(int pageNum) {
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<User> mpPage =
-            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNum, 10);
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNum, 10);
         mpPage = userMapper.selectPage(mpPage, null);
 
         Page<User> page = new Page<>();

@@ -14,7 +14,7 @@
 | **版本**             | 0.0.1-SNAPSHOT                    |
 | **打包方式**         | JAR                               |
 | **JDK 版本**         | Java 17                           |
-| **Spring Boot 版本** | 3.3.2                             |
+| **Spring Boot 版本** | 3.5.15                            |
 | **数据库**           | MySQL 5.7+                        |
 
 ### 1.1 技术栈
@@ -22,7 +22,7 @@
 | 层级                 | 技术                                    |
 | -------------------- | --------------------------------------- |
 | **前端**       | Thymeleaf、Layui、jQuery、Ajax          |
-| **后端框架**   | Spring Boot 3.3.2、Spring MVC           |
+| **后端框架**   | Spring Boot 3.5.15、Spring MVC           |
 | **ORM 框架**   | MyBatis-Plus 3.5.7                      |
 | **安全加密**   | Spring Security Crypto (BCrypt)         |
 | **参数校验**   | Spring Boot Validation (Jakarta @Valid) |
@@ -80,7 +80,8 @@ library_manager_system-master/
 │   │       │   ├── migrate-password-bcrypt.sql # BCrypt 密码迁移脚本
 │   │       │   └── seed-novel-books.sql       # 小说类100条测试数据
 │   │       ├── sql/
-│   │       │   └── announcement.sql            # 公告/活动建表+示例数据
+│   │       │   ├── announcement.sql            # 公告/活动建表+示例数据
+│   │       │   └── reservation.sql             # 预约表建表
 │   │       ├── static/                       # 静态资源 (CSS/JS/图片)
 │   │       └── templates/                    # Thymeleaf 页面模板
 │   └── test/                                 # 单元测试
@@ -103,6 +104,7 @@ library_manager_system-master/
 | `borrowingbooks` | 借阅记录表  | id, user_id, book_id, date                                                                                                   |
 | `announcement`   | 公告/活动表 | id, title, content, summary, cover_image, type, is_carousel, create_time, update_time                                        |
 | `dept`           | 部门表      | dept_id, dept_name                                                                                                           |
+| `reservation`    | 预约表      | id, user_id, book_id, reserve_time, status(0=排队中/1=待借阅/2=已借出/3=已取消), notify_time                                 |
 
 > **注意**：`user_pwd` 和 `admin_pwd` 列已扩展为 `varchar(200)` 以存储 BCrypt 哈希值（固定 60 字符）。
 > `book` 表通过 `migrate-password-bcrypt.sql` 追加了 `isbn`、`publish_date`、`total_stock` 三个字段，`book_introduction` 改为 TEXT。
@@ -112,6 +114,8 @@ library_manager_system-master/
 - `book.book_category` → `book_category.category_id` (外键)
 - `borrowingbooks.book_id` → `book.book_id` (外键)
 - `borrowingbooks.user_id` → `user.user_id` (外键)
+- `reservation.user_id` → `user.user_id` (外键)
+- `reservation.book_id` → `book.book_id` (外键)
 
 ### 3.3 默认测试账号
 
@@ -159,6 +163,7 @@ library_manager_system-master/
 - **职责**: 处理图书与图书类别的增删查及 Excel 批量导入
 - **主要功能**:
   - 录入新书 (`/addBook`)，带 `@Valid` 后端校验
+  - 编辑图书 (`/editBookPage`、`/updateBook`)，支持修改图书全部字段
   - 按类别/关键字分页查询图书（管理员+用户）
   - 查询所有图书类别 (`/findAllBookCategory`)
   - 新建/删除图书类别 (`/addBookCategory`, `/deleteCategory`)
@@ -190,6 +195,8 @@ library_manager_system-master/
   - Excel 批量导入用户 (`/importUsersByExcel`)
   - 获取部门列表 (`/getDepts`)
   - 公告/活动详情 (`/announcementDetail`)
+  - 图书预约 (`/reserveBook`、`/cancelReservation`、`/userReservationsPage`)
+  - 预约通知红点 (`/getNotificationCount`)
 
 ### 4.3 实体/VO 模块 (`domain`)
 
@@ -204,6 +211,7 @@ library_manager_system-master/
 | `BookVo`           | 图书视图对象（含是否可借状态）                     | —                                        |
 | `BorrowingBooksVo` | 借阅记录视图对象（含 User、Book 对象及格式化日期） | —                                        |
 | `Announcement`     | 公告/活动实体                                      | —                                        |
+| `Reservation`     | 预约实体（含联表字段 userName、bookName）          | —                                        |
 
 ### 4.4 数据层模块 (`mapper`)
 
@@ -218,6 +226,7 @@ library_manager_system-master/
 | `BorrowingBooksMapper` | BorrowingBooks |
 | `DepartmentMapper`     | Department     |
 | `AnnouncementMapper`   | Announcement   |
+| `ReservationMapper`   | Reservation    |
 
 ### 4.5 业务层模块 (`service`)
 
@@ -225,23 +234,25 @@ library_manager_system-master/
 
 | 接口                             | 职责                                                 |
 | -------------------------------- | ---------------------------------------------------- |
-| `IAdminService`                | 管理员登录验证、图书/类别增删、批量导入图书          |
+| `IAdminService`                | 管理员登录验证、图书/类别增删改、批量导入图书          |
 | `IBookService`                 | 图书关键字/类别查询、借阅状态检查                    |
 | `IBookCategoryService`         | 图书类别分页查询、删除类别                           |
 | `IBorrowingBooksRecordService` | 借阅记录分页查询（管理员/用户）、删除记录            |
 | `IUserService`                 | 用户ID登录/增删/分页、借还书、部门查询、批量导入用户 |
 | `IAnnouncementService`         | 公告/活动轮播查询、分页、CRUD                        |
+| `IReservationService`         | 图书预约、排队、通知、取消预约                        |
 
 #### 实现类关键逻辑
 
 | 实现类                              | 关键逻辑说明                                                                                                                                      |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session                                                                    |
+| `AdminServiceImpl`                | BCrypt 密码验证；登录时自动将旧明文密码升级为 BCrypt；更新管理员后刷新 Session；图书增删改                                                                  |
 | `BookServiceImpl`                 | 查询图书时关联 `borrowingBooksMapper` 判断 `isExist`（可借/不可借）；分页使用 MP 分页插件；随机推荐同类别可借图书（内存随机打乱，按书名去重） |
 | `BookCategoryServiceImpl`         | 分页封装到自定义 `Page<T>`                                                                                                                      |
 | `BorrowingBooksRecordServiceImpl` | 组装 `BorrowingBooksVo`：查询关联的 User 和 Book，计算应还日期（借书日期 + 2个月）                                                              |
 | `UserServiceImpl`                 | BCrypt 密码验证+自动升级；新增/批量导入时密码自动加密；借书时检查是否已被借阅；还书按 userId+bookId 删除                                          |
 | `AnnouncementServiceImpl`         | 轮播公告查询（is_carousel=1）、普通公告列表、分页查询、增删改操作                                                                                 |
+| `ReservationServiceImpl`         | 预约去重检查；FIFO 排队（按 reserve_time 升序）；归还图书后自动通知队列第一位预约人；状态机流转（0→1→2 / 0→3）                                        |
 
 ### 4.6 工具类模块 (`utils`)
 
@@ -321,6 +332,8 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 | `/adminLogin`               | POST     | AdminController     | 管理员登录（用户名），Session 存储 admin   |
 | `/userLogin`                | POST     | UserController      | 用户登录（用户ID），Session 存储 user      |
 | `/addBook`                  | 任意     | BookController      | 录入新书，带 `@Valid` 校验               |
+| `/updateBook`               | POST     | BookController      | 修改图书信息，带 ISBN 唯一性校验          |
+| `/editBookPage`             | GET      | BookController      | 返回编辑图书页面（预填现有数据）          |
 | `/deleteBook`               | 任意     | BookController      | 删除图书（借阅中则拒绝，需二次确认）       |
 | `/checkBookStatus`          | 任意     | BookController      | 检查图书借阅状态                           |
 | `/findBooksByCategoryId`    | 任意     | BookController      | 查询类别下所有图书（删除类别前检查用）     |
@@ -340,6 +353,10 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 | `/deleteAnnouncement`       | POST     | AdminController     | 删除公告/活动                              |
 | `/getAnnouncementJson`      | GET      | AdminController     | 获取公告JSON（编辑弹窗用）                 |
 | `/announcementDetail`       | GET      | UserController      | 公告/活动详情页                            |
+| `/reserveBook`              | GET      | UserController      | 预约图书                                   |
+| `/cancelReservation`        | POST     | UserController      | 取消预约                                   |
+| `/userReservationsPage`     | GET      | UserController      | 我的预约列表页                             |
+| `/getNotificationCount`     | GET      | UserController      | 获取待借阅通知数（header 红点徽章）        |
 
 ---
 
@@ -350,11 +367,11 @@ Page<BorrowingBooksVo> selectAllByPage(int pageNum)
 ```
 demo (0.0.1-SNAPSHOT)
 │
-├── spring-boot-starter-web (3.3.2)
+├── spring-boot-starter-web (3.5.15)
 │   └── 内置 Tomcat + Spring MVC
-├── spring-boot-starter-thymeleaf (3.3.2)
+├── spring-boot-starter-thymeleaf (3.5.15)
 │   └── Thymeleaf 模板引擎
-├── spring-boot-starter-validation (3.3.2)
+├── spring-boot-starter-validation (3.5.15)
 │   └── Jakarta Bean Validation（@Valid, @NotBlank 等）
 ├── spring-security-crypto
 │   └── BCryptPasswordEncoder（密码加密）
@@ -492,6 +509,7 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 | ----------------- | -------------------------------- | ------------------------------- |
 | `admin/`        | `index.html`                   | 管理员首页                      |
 |                   | `addBook.html`                 | 添加图书                        |
+|                   | `editBook.html`                | 编辑图书（预填现有数据）        |
 |                   | `addCategory.html`             | 管理图书类别（删除需二次确认）  |
 |                   | `showBooks.html`               | 查询图书（按类别+分页，可删除） |
 |                   | `showUsers.html`               | 用户管理（分页+删除）           |
@@ -507,6 +525,7 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 |                   | `returnBooks.html`             | 还书页面                        |
 |                   | `borrowingBooksRecord.html`    | 个人借书记录                    |
 |                   | `userMessage.html`             | 个人信息                        |
+|                   | `reservations.html`           | 我的预约（状态流转+取消）       |
 | `announcement/` | `detail.html`                  | 公告/活动详情页                 |
 | `common/`       | `admin_header.html`            | 管理员公共头部                  |
 |                   | `user_header.html`             | 用户公共头部                    |
@@ -612,6 +631,7 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 10. **首页轮播图**：基于数据库的公告/活动轮播，动态渲染，点击可跳转详情页，标题叠加层展示。
 11. **公告/活动系统**：管理员可管理公告和活动（增删改），支持轮播展示、类型标签、详情页（保留完整顶栏侧边栏布局）。
 12. **随机推荐**：同类别图书在内存中随机打乱后返回，按书名去重，排除当前书和用户借阅中的书，无需额外缓存依赖。
+13. **图书预约排队**：图书被借出后支持预约，FIFO 排队（按预约时间升序）；还书后自动通知队列第一位预约人（status 0→1），用户可在导航栏看到红点徽章提醒；预约状态机包含排队中(0)→待借阅(1)→已借出(2)/已取消(3)完整流转。
 
 ### 13.2 注意事项
 
