@@ -20,7 +20,7 @@ CREATE TABLE `admin` (
     PRIMARY KEY (`admin_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 
-INSERT INTO `admin` VALUES ('1', 'admin', '123456', '501455447@qq.com');
+INSERT INTO `admin` VALUES ('1', 'admin', '999999', '501455447@qq.com');
 
 -- ============================================================
 -- 2. dept（部门表）

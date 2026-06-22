@@ -95,26 +95,61 @@ library_manager_system-master/
 | 表名               | 说明        | 主要字段                                                                                                                     |
 | ------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `admin`          | 管理员表    | admin_id, admin_name, admin_pwd(200), admin_email                                                                            |
-| `user`           | 用户表      | user_id, user_name, user_pwd(200), user_email                                                                                |
+| `user`           | 用户表      | user_id, user_name, user_pwd(200), user_email, dept_id                                                                    |
 | `book`           | 图书表      | book_id, book_name, book_author, book_publish, book_category, book_price, book_introduction, isbn, publish_date, total_stock |
 | `book_category`  | 图书类别表  | category_id, category_name                                                                                                   |
 | `borrowingbooks` | 借阅记录表  | id, user_id, book_id, date                                                                                                   |
-| `announcement`   | 公告/活动表 | id, title, content, summary, cover_image, type, is_carousel, create_time, update_time                                        |
+| `announcement`   | 公告/活动表 | id, title, content, summary, cover_image, type, is_carousel, publisher_id, create_time, update_time                         |
 | `dept`           | 部门表      | dept_id, dept_name                                                                                                           |
 | `reservation`    | 预约表      | id, user_id, book_id, reserve_time, status(0=排队中/1=待借阅/2=已借出/3=已取消), notify_time                                 |
 
-> **注意**：`user_pwd` 和 `admin_pwd` 列已扩展为 `varchar(200)` 以存储 BCrypt 哈希值（固定 60 字符）。
-> `book` 表通过 `migrate-password-bcrypt.sql` 追加了 `isbn`、`publish_date`、`total_stock` 三个字段，`book_introduction` 改为 TEXT。
+> **注意**：`user_pwd` 和 `admin_pwd` 列已扩展为 `varchar(200)` 以存储 BCrypt 哈希值（固定 60 字符）。`book_introduction` 列为 TEXT 类型支持长文本。所有外键约束已在 `sql/library-manager-system.sql` 中完整定义。
 
-### 3.2 表关系
+### 3.2 表关系与外键约束
 
-- `book.book_category` → `book_category.category_id` (外键)
-- `borrowingbooks.book_id` → `book.book_id` (外键)
-- `borrowingbooks.user_id` → `user.user_id` (外键)
-- `reservation.user_id` → `user.user_id` (外键)
-- `reservation.book_id` → `book.book_id` (外键)
+| 子表 | 外键字段 | 参照父表 | 约束说明 |
+|------|---------|---------|---------|
+| `user` | dept_id | `dept` (dept_id) | 用户所属院系必须存在 |
+| `book` | book_category | `book_category` (category_id) | 图书类别必须存在 |
+| `borrowingbooks` | user_id | `user` (user_id) | 借阅人必须是已注册用户 |
+| `borrowingbooks` | book_id | `book` (book_id) | 借阅图书必须存在 |
+| `reservation` | user_id | `user` (user_id) | 预约人必须存在 |
+| `reservation` | book_id | `book` (book_id) | 预约图书必须存在 |
+| `announcement` | publisher_id | `admin` (admin_id) | 发布人必须是已注册管理员 |
 
-### 3.3 默认测试账号
+> 外键约束均未设置 `ON DELETE CASCADE`，默认为 `RESTRICT`。删除父表记录前需确保子表无关联数据，由业务层代码配合数据库约束共同保障参照完整性。
+
+### 3.3 数据完整性设计
+
+系统通过**前端—后端—数据库**三层协同保障数据完整性：
+
+| 层级 | 机制 | 典型示例 |
+|------|------|---------|
+| 前端 | 输入校验（非空、纯数字、正则匹配） | 学生ID纯数字检测、中文字符拦截、空值拦截 |
+| 后端 | Jakarta Validation 注解 + 业务校验 | `@NotBlank`、`@Size`、`@Email`、借阅前去重检查、预约重复校验 |
+| 数据库 | 外键约束 + NOT NULL + 类型约束 | FK 拒绝无效引用、列类型校验、UNIQUE 约束 |
+
+**级联策略**：所有外键默认 `RESTRICT`，删除用户前需确保该用户在 `borrowingbooks`、`reservation` 表中无关联记录；删除图书前需检查是否已被借阅或预约；删除类别前需检查关联图书数量并弹窗二次确认。业务层先检查后操作，数据库层作为最后防线兜底，确保不出现"借阅记录指向不存在的用户"等脏数据。
+
+### 3.4 数据库范式分析
+
+当前 8 张表均满足 **第三范式（3NF）**：
+
+| 范式 | 要求 | 满足情况 |
+|------|------|---------|
+| 1NF | 所有列原子化，无列表、无嵌套表 | ✅ 全部字段为单一值 |
+| 2NF | 非主属性完全函数依赖于码（消除部分依赖） | ✅ 全部为单属性主键，自动满足 |
+| 3NF | 非主属性不传递依赖于码（消除传递依赖） | ✅ 不存在 A→B→C 的依赖链；FK 不构成传递依赖 |
+
+**分析说明**：
+
+- `user.dept_id` 是外键引用，表示"用户属于某个院系"，而非 `dept_id → dept_name → user_id` 方向的传递依赖，不违反 3NF
+- `announcement.publisher_id` 同理，只表示"谁发布的"，不产生传递依赖
+- `book_author`、`book_publish` 以字符串值而非 ID 存储，表示这些属性直属于 `book_id`，未指向独立的作者/出版社实体，不构成传递依赖路径
+
+> 若后续需要按作者统计或出版社管理功能，可将 `author`、`publisher` 抽成独立表，此时仍满足范式（实体粒度更细，但范式级别不变）。
+
+### 3.5 默认测试账号
 
 | 账号  | 密码   | 角色     | 登录方式       |
 | ----- | ------ | -------- | -------------- |
