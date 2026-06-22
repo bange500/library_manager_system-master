@@ -11,7 +11,7 @@
 | **项目名称**         | springboot-library_manager_system |
 | **GroupId**          | com.zbw                           |
 | **ArtifactId**       | demo                              |
-| **版本**             | 0.0.1-SNAPSHOT                    |
+| **版本**             | 3.1                               |
 | **打包方式**         | JAR                               |
 | **JDK 版本**         | Java 17                           |
 | **Spring Boot 版本** | 3.5.15                            |
