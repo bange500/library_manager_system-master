@@ -120,7 +120,14 @@
                 // 检查是否包含中文字符
                 if (hasChinese(username)) {
                     var labelText = $("#loginLabel").text().replace(":", "");
-                    layer.alert(labelText + "错误", {icon: 5});
+                    layer.alert(labelText + "包含非法字符", {icon: 5});
+                    return false;
+                }
+
+                // 学生登录时，检查用户ID是否为纯数字
+                let role_id = $('input[name="role"]:checked').val();
+                if (role_id == 1 && !isNumeric(username)) {
+                    layer.alert("用户ID必须为纯数字", {icon: 5});
                     return false;
                 }
 
@@ -128,8 +135,6 @@
                 let pwd_judge = check(password);
 
                 if (pwd_judge) {
-                    let role_id = $('input[name="role"]:checked').val();
-
                     if (role_id == 1) {
                         // 学生登录 → /userLogin
                         $("#my_form").attr("action", "/userLogin");
@@ -158,6 +163,12 @@
         // 检查是否包含中文字符
         function hasChinese(str) {
             var reg = /[一-龥]/;
+            return reg.test(str);
+        }
+
+        // 检查是否为纯数字
+        function isNumeric(str) {
+            var reg = /^\d+$/;
             return reg.test(str);
         }
     });
