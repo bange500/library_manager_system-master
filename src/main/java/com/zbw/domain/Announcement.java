@@ -32,4 +32,7 @@ public class Announcement {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Shanghai")
     private Date updateTime;
+
+    /** 发布管理员ID */
+    private Integer publisherId;
 }

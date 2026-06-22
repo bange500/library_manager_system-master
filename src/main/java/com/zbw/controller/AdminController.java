@@ -170,8 +170,12 @@ public class AdminController {
      */
     @RequestMapping("/addAnnouncement")
     @ResponseBody
-    public Map<String, Object> addAnnouncement(Announcement announcement) {
+    public Map<String, Object> addAnnouncement(Announcement announcement, HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>();
+        Admin admin = (Admin) request.getSession().getAttribute("admin");
+        if (admin != null) {
+            announcement.setPublisherId(admin.getAdminId());
+        }
         boolean success = announcementService.saveAnnouncement(announcement);
         result.put("success", success);
         result.put("msg", success ? "添加成功" : "添加失败");

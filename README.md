@@ -76,12 +76,9 @@ library_manager_system-master/
 │   │   └── resources/
 │   │       ├── application.yml               # 主配置文件
 │   │       ├── db/
-│   │       │   ├── library-manager-system.sql # 数据库初始化脚本
-│   │       │   ├── migrate-password-bcrypt.sql # BCrypt 密码迁移脚本
 │   │       │   └── seed-novel-books.sql       # 小说类100条测试数据
 │   │       ├── sql/
-│   │       │   ├── announcement.sql            # 公告/活动建表+示例数据
-│   │       │   └── reservation.sql             # 预约表建表
+│   │       │   └── library-manager-system.sql  # 数据库初始化脚本（全部建表+示例数据）
 │   │       ├── static/                       # 静态资源 (CSS/JS/图片)
 │   │       └── templates/                    # Thymeleaf 页面模板
 │   └── test/                                 # 单元测试
@@ -461,12 +458,7 @@ CREATE DATABASE IF NOT EXISTS `library-manager-system`
 DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
-**全新安装**：依次导入：
-
-1. `src/main/resources/db/library-manager-system.sql` — 建表 + 初始数据
-2. `src/main/resources/db/migrate-password-bcrypt.sql` — 追加 ISBN/出版日期/库存字段
-
-**已有数据库升级**：执行 `src/main/resources/db/migrate-password-bcrypt.sql`（含密码列扩宽 + book 表新字段）
+**全新安装**：导入 `sql/library-manager-system.sql` 即可，包含全部 8 张表（admin、dept、user、book_category、book、announcement、borrowingbooks、reservation）的建表脚本、外键约束及示例数据。
 
 **测试数据**（可选）：执行 `src/main/resources/db/seed-novel-books.sql` 导入小说类 100 条测试图书
 

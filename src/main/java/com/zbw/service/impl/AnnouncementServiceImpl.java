@@ -65,6 +65,11 @@ public class AnnouncementServiceImpl implements IAnnouncementService {
 
     @Override
     public boolean updateAnnouncement(Announcement announcement) {
+        // 保留发布人ID，防止被表单提交的 null 覆盖
+        Announcement existing = announcementMapper.selectById(announcement.getId());
+        if (existing != null && existing.getPublisherId() != null) {
+            announcement.setPublisherId(existing.getPublisherId());
+        }
         int n = announcementMapper.updateById(announcement);
         return n > 0;
     }
