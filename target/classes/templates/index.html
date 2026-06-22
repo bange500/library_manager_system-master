@@ -117,17 +117,20 @@
             let user_judge = check(username);
 
             if (user_judge) {
+                let role_id = $('input[name="role"]:checked').val();
+                
+                // 学生登录：用户ID只能是数字
+                if (role_id == 1) {
+                    if (!isNumeric(username)) {
+                        layer.alert("用户ID只能包含数字", {icon: 5});
+                        return false;
+                    }
+                }
+                
                 // 检查是否包含中文字符
                 if (hasChinese(username)) {
                     var labelText = $("#loginLabel").text().replace(":", "");
-                    layer.alert(labelText + "包含非法字符", {icon: 5});
-                    return false;
-                }
-
-                // 学生登录时，检查用户ID是否为纯数字
-                let role_id = $('input[name="role"]:checked').val();
-                if (role_id == 1 && !isNumeric(username)) {
-                    layer.alert("用户ID必须为纯数字", {icon: 5});
+                    layer.alert(labelText + "错误", {icon: 5});
                     return false;
                 }
 
@@ -165,10 +168,10 @@
             var reg = /[一-龥]/;
             return reg.test(str);
         }
-
+        
         // 检查是否为纯数字
         function isNumeric(str) {
-            var reg = /^\d+$/;
+            var reg = /^[0-9]+$/;
             return reg.test(str);
         }
     });
