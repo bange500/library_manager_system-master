@@ -7,14 +7,17 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 /**
- * Excel 导入工具类
- * 支持 .xlsx 和 .xls 格式
+ * Excel / CSV 导入工具类
+ * 支持 .xlsx、.xls、.csv 格式
  */
 public class ExcelImportUtil {
 
@@ -68,11 +71,9 @@ public class ExcelImportUtil {
                 String dateStr = getCellStringValue(row.getCell(6));
                 if (dateStr != null && !dateStr.isEmpty()) {
                     try {
-                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-                        sdf.setLenient(false);
-                        book.setPublishDate(sdf.parse(dateStr));
+                        book.setPublishDate(parseDate(dateStr));
                     } catch (Exception e) {
-                        result.setError("出版日期格式不正确，应为 yyyy-MM-dd");
+                        result.setError("出版日期格式不正确，应为 yyyy-MM-dd 或 yyyy/M/d");
                         result.setBook(book);
                         results.add(result);
                         continue;
@@ -181,18 +182,186 @@ public class ExcelImportUtil {
     }
 
     /**
+     * 从 CSV 文件解析图书列表
+     * CSV 表头：书名,作者,出版社,类别ID,价格,ISBN,出版日期,入库数量,简介
+     */
+    public static List<ImportBookResult> parseBooksFromCsv(MultipartFile file) throws Exception {
+        List<ImportBookResult> results = new ArrayList<>();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"));
+        String line;
+        int rowNum = 1;
+        boolean firstLine = true;
+
+        while ((line = reader.readLine()) != null) {
+            if (firstLine) {
+                firstLine = false;
+                rowNum++;
+                continue; // 跳过表头
+            }
+
+            ImportBookResult result = new ImportBookResult();
+            result.setRowNum(rowNum);
+            String[] cols = line.split(",", -1);
+
+            if (cols.length < 5 || allEmpty(cols)) {
+                rowNum++;
+                continue;
+            }
+
+            try {
+                Book book = new Book();
+                book.setBookName(getCsvField(cols, 0));
+                book.setBookAuthor(getCsvField(cols, 1));
+                book.setBookPublish(getCsvField(cols, 2));
+                book.setBookCategory(parseInt(getCsvField(cols, 3)));
+                book.setBookPrice(parseDouble(getCsvField(cols, 4)));
+                book.setIsbn(getCsvField(cols, 5));
+
+                String dateStr = getCsvField(cols, 6);
+                if (dateStr != null && !dateStr.isEmpty()) {
+                    try {
+                        book.setPublishDate(parseDate(dateStr));
+                    } catch (Exception e) {
+                        result.setError("出版日期格式不正确，应为 yyyy-MM-dd 或 yyyy/M/d");
+                        result.setBook(book);
+                        results.add(result);
+                        rowNum++;
+                        continue;
+                    }
+                }
+
+                String stockStr = getCsvField(cols, 7);
+                if (stockStr != null && !stockStr.isEmpty()) {
+                    int stock = (int) Double.parseDouble(stockStr);
+                    if (stock < 0) {
+                        result.setError("入库数量不能为负数");
+                        result.setBook(book);
+                        results.add(result);
+                        rowNum++;
+                        continue;
+                    }
+                    book.setTotalStock(stock);
+                }
+
+                book.setBookIntroduction(getCsvField(cols, 8));
+
+                if (book.getBookName() == null || book.getBookName().trim().isEmpty()) {
+                    result.setError("书名不能为空");
+                    result.setBook(book);
+                    results.add(result);
+                    rowNum++;
+                    continue;
+                }
+
+                result.setBook(book);
+                result.setSuccess(true);
+            } catch (Exception e) {
+                result.setError("解析失败: " + e.getMessage());
+            }
+            results.add(result);
+            rowNum++;
+        }
+        reader.close();
+        return results;
+    }
+
+    /**
+     * 从 CSV 文件解析用户列表
+     * CSV 表头：用户名,密码,邮箱
+     */
+    public static List<User> parseUsersFromCsv(MultipartFile file) throws Exception {
+        List<User> users = new ArrayList<>();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"));
+        String line;
+        boolean firstLine = true;
+
+        while ((line = reader.readLine()) != null) {
+            if (firstLine) {
+                firstLine = false;
+                continue;
+            }
+
+            String[] cols = line.split(",", -1);
+            if (cols.length < 2 || allEmpty(cols)) continue;
+
+            try {
+                String userName = getCsvField(cols, 0);
+                String userPwd = getCsvField(cols, 1);
+                String userEmail = getCsvField(cols, 2);
+
+                if (userName == null || userName.trim().isEmpty()
+                    || userPwd == null || userPwd.trim().isEmpty()) {
+                    continue;
+                }
+
+                User user = new User();
+                user.setUserName(userName);
+                user.setUserPwd(userPwd);
+                user.setUserEmail(userEmail);
+                users.add(user);
+            } catch (Exception e) {
+                System.err.println("解析CSV行失败: " + e.getMessage());
+            }
+        }
+        reader.close();
+        return users;
+    }
+
+    // ─── 通用辅助方法 ───
+
+    private static String getCsvField(String[] cols, int index) {
+        if (index >= cols.length) return null;
+        String val = cols[index].trim();
+        // 去除 BOM 和引号
+        if (val.startsWith("﻿")) val = val.substring(1);
+        if (val.startsWith("\"") && val.endsWith("\"")) val = val.substring(1, val.length() - 1);
+        return val.isEmpty() ? null : val;
+    }
+
+    private static Date parseDate(String str) throws Exception {
+        if (str == null || str.trim().isEmpty()) return null;
+        str = str.trim().replace('/', '-');
+        String[] patterns = {"yyyy-MM-dd", "yyyy-M-d"};
+        for (String p : patterns) {
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(p);
+                sdf.setLenient(false);
+                return sdf.parse(str);
+            } catch (Exception ignored) {}
+        }
+        throw new IllegalArgumentException("无法解析日期: " + str);
+    }
+
+    private static int parseInt(String str) {
+        if (str == null || str.isEmpty()) return 0;
+        return (int) Double.parseDouble(str);
+    }
+
+    private static double parseDouble(String str) {
+        if (str == null || str.isEmpty()) return 0;
+        return Double.parseDouble(str);
+    }
+
+    private static boolean allEmpty(String[] cols) {
+        for (String c : cols) {
+            if (c != null && !c.trim().isEmpty()) return false;
+        }
+        return true;
+    }
+
+    /**
      * 根据文件后缀获取对应的 Workbook
      */
     private static Workbook getWorkbook(MultipartFile file) throws Exception {
         String fileName = file.getOriginalFilename();
         InputStream inputStream = file.getInputStream();
 
-        if (fileName != null && fileName.endsWith(".xlsx")) {
+        if (fileName != null && fileName.toLowerCase().endsWith(".xlsx")) {
             return new XSSFWorkbook(inputStream);
-        } else if (fileName != null && fileName.endsWith(".xls")) {
+        } else if (fileName != null && fileName.toLowerCase().endsWith(".xls")) {
             return new HSSFWorkbook(inputStream);
         } else {
-            throw new IllegalArgumentException("不支持的文件格式，请上传 .xlsx 或 .xls 文件");
+            throw new IllegalArgumentException("不支持的文件格式，请上传 .xlsx、.xls 或 .csv 文件");
         }
     }
 

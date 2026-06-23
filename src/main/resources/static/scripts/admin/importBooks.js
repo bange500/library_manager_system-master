@@ -11,7 +11,7 @@ layui.use(['upload', 'element', 'layer'], function () {
         url: '/importBooksByExcel',
         auto: false,          // 不自动上传
         accept: 'file',
-        exts: 'xls|xlsx',
+        exts: 'xls|xlsx|csv',
         size: 10240,          // 10MB
         choose: function (obj) {
             // 预读文件，只选中不自动提交
@@ -100,8 +100,8 @@ layui.use(['upload', 'element', 'layer'], function () {
         // 使用 Blob 在浏览器端生成 Excel 模板（CSV 格式，Excel 可打开）
         // 列顺序：书名,作者,出版社,类别ID,价格,ISBN,出版日期,入库数量,简介
         var csvContent = '﻿书名,作者,出版社,类别ID,价格,ISBN,出版日期,入库数量,简介\n';
-        csvContent += 'Java编程思想,Bruce Eckel,机械工业出版社,1,79.00,978-7-111-00001,2020-01-15,10,Java经典入门书籍\n';
-        csvContent += '深入理解Java虚拟机,周志明,机械工业出版社,1,89.00,978-7-111-00002,2019-12-01,5,深入JVM原理';
+        csvContent += 'Java编程思想,Bruce Eckel,机械工业出版社,1,79.00,978-7-111-00001,2020/1/15,10,Java经典入门书籍\n';
+        csvContent += '深入理解Java虚拟机,周志明,机械工业出版社,1,89.00,978-7-111-00002,2019/12/1,5,深入JVM原理';
 
         var blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
         var link = document.createElement('a');
@@ -110,6 +110,6 @@ layui.use(['upload', 'element', 'layer'], function () {
         link.download = '图书导入模板.csv';
         link.click();
         URL.revokeObjectURL(url);
-        layer.msg('模板下载成功！请用Excel打开并编辑', {icon: 1});
+        layer.msg('模板下载成功！可用Excel编辑后直接上传CSV文件', {icon: 1});
     });
 });

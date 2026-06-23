@@ -285,14 +285,19 @@ public class UserController {
 
         // 检查文件类型
         String fileName = file.getOriginalFilename();
-        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls") && !fileName.endsWith(".csv"))) {
             result.put("success", false);
-            result.put("msg", "文件格式不正确，请上传 .xlsx 或 .xls 文件");
+            result.put("msg", "文件格式不正确，请上传 .xlsx、.xls 或 .csv 文件");
             return result;
         }
 
         try {
-            List<User> users = ExcelImportUtil.parseUsersFromExcel(file);
+            List<User> users;
+            if (fileName.endsWith(".csv")) {
+                users = ExcelImportUtil.parseUsersFromCsv(file);
+            } else {
+                users = ExcelImportUtil.parseUsersFromExcel(file);
+            }
             if (users.isEmpty()) {
                 result.put("success", false);
                 result.put("msg", "Excel文件中没有有效的用户数据，请检查文件内容");

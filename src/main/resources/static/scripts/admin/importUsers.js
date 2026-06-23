@@ -11,7 +11,7 @@ layui.use(['upload', 'element', 'layer'], function () {
         url: '/importUsersByExcel',
         auto: false,          // 不自动上传
         accept: 'file',
-        exts: 'xls|xlsx',
+        exts: 'xls|xlsx|csv',
         size: 10240,          // 10MB
         choose: function (obj) {
             // 预读文件，只选中不自动提交
@@ -110,6 +110,6 @@ layui.use(['upload', 'element', 'layer'], function () {
         link.download = '用户导入模板.csv';
         link.click();
         URL.revokeObjectURL(url);
-        layer.msg('模板下载成功！请用Excel打开并编辑', {icon: 1});
+        layer.msg('模板下载成功！可用Excel编辑后直接上传CSV文件', {icon: 1});
     });
 });

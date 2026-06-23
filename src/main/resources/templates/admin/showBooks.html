@@ -79,6 +79,24 @@
 
                     <input class="layui-btn" type="submit" lay-submit="" value="查找">
                 </form>
+
+                <hr style="margin:20px 0;">
+
+                <!-- 按书名查找 -->
+                <form class="layui-form" action="/adminFindBooksByKeyword" id="keywordForm">
+                    <div class="layui-form-item">
+                        <div style="margin: 20px;">
+                            <label>按书名查找</label>
+                        </div>
+                        <div>
+                            <input class="layui-input" type="text" name="bookPartInfo"
+                                   placeholder="输入书名关键字" autocomplete="off" lay-verify="required">
+                        </div>
+                    </div>
+                    <input type="text" name="pageNum" value="1" style="display: none">
+                    <input type="hidden" name="bookCategory" id="keywordBookCategory" value="0">
+                    <input class="layui-btn layui-btn-normal" type="submit" lay-submit="" value="按书名查找">
+                </form>
             </div>
 
             <div class="layui-col-md7 layui-col-md-offset2"><!--右半部分-->
@@ -131,32 +149,48 @@
                         <td colspan="8" style="text-align:center; color:#999; padding:30px;">
                             <i class="layui-icon layui-icon-tips" style="font-size:24px; color:#ccc;"></i>
                             <p style="margin-top:8px;">
-                                <span th:if="${bookCategory != null && bookCategory != 0}">该分类下暂无书籍数据</span>
-                                <span th:unless="${bookCategory != null && bookCategory != 0}">请选择图书类别后点击【查找】</span>
+                                <span th:if="${searchType == 'keyword'}">未找到包含 "<span th:text="${keyword}"></span>" 的书籍</span>
+                                <span th:elseif="${bookCategory != null && bookCategory != 0}">该分类下暂无书籍数据</span>
+                                <span th:else>请选择图书类别或输入书名后点击【查找】</span>
                             </p>
                         </td>
                     </tr>
 
-                    <!-- 分页导航 -->
-                    <tr th:if="${page != null && page.getList() != null && !page.getList().isEmpty()}">
+                    <!-- 分页导航：关键字搜索 -->
+                    <tr th:if="${page != null && page.getList() != null && !page.getList().isEmpty() && searchType == 'keyword'}">
                         <td colspan="8">
                             <div style="margin: auto; width: 160px;">
+                                <a id="prePage"
+                                   th:href="@{/adminFindBooksByKeyword(pageNum=${page.getPageNum()-1},bookPartInfo=${keyword},bookCategory=${bookCategory})}">
+                                    <button class="layui-btn layui-btn-sm">上一页</button>
+                                </a>
+                                <label id="lab1" th:text="${page.getPageNum()}"></label>
+                                <span>/</span>
+                                <label id="lab2" th:text="${page.getPageCount()}"></label>
+                                <a id="nextPage"
+                                   th:href="@{/adminFindBooksByKeyword(pageNum=${page.getPageNum()+1},bookPartInfo=${keyword},bookCategory=${bookCategory})}">
+                                    <button class="layui-btn layui-btn-sm">下一页</button>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
 
+                    <!-- 分页导航：类别搜索 -->
+                    <tr th:if="${page != null && page.getList() != null && !page.getList().isEmpty() && searchType != 'keyword'}">
+                        <td colspan="8">
+                            <div style="margin: auto; width: 160px;">
                                 <a id="prePage"
                                    th:href="@{/showBooksResultPageByCategoryId(pageNum=${page.getPageNum()-1},bookCategory=${bookCategory})}">
                                     <button class="layui-btn layui-btn-sm">上一页</button>
                                 </a>
                                 <label id="lab1" th:text="${page.getPageNum()}"></label>
-
                                 <span>/</span>
-
                                 <label id="lab2" th:text="${page.getPageCount()}"></label>
                                 <a id="nextPage"
                                    th:href="@{/showBooksResultPageByCategoryId(pageNum=${page.getPageNum()+1},bookCategory=${bookCategory})}">
                                     <button class="layui-btn layui-btn-sm">下一页</button>
                                 </a>
                             </div>
-
                         </td>
                     </tr>
                 </table>

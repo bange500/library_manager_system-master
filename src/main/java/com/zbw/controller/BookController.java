@@ -173,6 +173,23 @@ public class BookController {
         Page<BookVo> page = bookService.findBooksByCategoryId(bookCategory, pageNum);
         model.addAttribute("page", page);
         model.addAttribute("bookCategory", bookCategory);
+        model.addAttribute("searchType", "category");
+        return "admin/showBooks";
+    }
+
+    /**
+     * 管理员按书名关键字查询图书
+     */
+    @RequestMapping("/adminFindBooksByKeyword")
+    public String adminFindBooksByKeyword(@RequestParam("bookPartInfo") String bookPartInfo,
+                                          @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+                                          @RequestParam(value = "bookCategory", defaultValue = "0") int bookCategory,
+                                          Model model) {
+        Page<BookVo> page = bookService.findBooksByKeyword(bookPartInfo, pageNum);
+        model.addAttribute("page", page);
+        model.addAttribute("keyword", bookPartInfo);
+        model.addAttribute("bookCategory", bookCategory);
+        model.addAttribute("searchType", "keyword");
         return "admin/showBooks";
     }
 
@@ -447,15 +464,20 @@ public class BookController {
         }
 
         String fileName = file.getOriginalFilename();
-        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls") && !fileName.endsWith(".csv"))) {
             result.put("success", false);
-            result.put("msg", "文件格式不正确，请上传 .xlsx 或 .xls 文件");
+            result.put("msg", "文件格式不正确，请上传 .xlsx、.xls 或 .csv 文件");
             return result;
         }
 
         try {
-            // 1. 解析 Excel，获取带行号和校验结果的列表
-            List<ExcelImportUtil.ImportBookResult> parseResults = ExcelImportUtil.parseBooksFromExcel(file);
+            // 1. 根据文件类型解析
+            List<ExcelImportUtil.ImportBookResult> parseResults;
+            if (fileName.endsWith(".csv")) {
+                parseResults = ExcelImportUtil.parseBooksFromCsv(file);
+            } else {
+                parseResults = ExcelImportUtil.parseBooksFromExcel(file);
+            }
             if (parseResults.isEmpty()) {
                 result.put("success", false);
                 result.put("msg", "Excel文件中没有有效的图书数据，请检查文件内容");
